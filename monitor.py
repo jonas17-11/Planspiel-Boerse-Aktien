@@ -23,11 +23,19 @@ for ticker in tickers:
     except Exception as e:
         print(f"Fehler bei {ticker}: {e}")
 
-# Nach größtem Aufwärtspotenzial sortieren und Top 10 auswählen
-top10 = sorted(results, key=lambda x: x["change_percent"], reverse=True)[:10]
+# Top 10 Aktien mit höchster positiver Veränderung
+top10_best = sorted(results, key=lambda x: x["change_percent"], reverse=True)[:10]
 
-# JSON-Datei speichern
+# Top 5 Aktien mit größter negativer Veränderung
+top5_worst = sorted(results, key=lambda x: x["change_percent"])[:5]
+
+# Ausgabe in JSON speichern
+output = {
+    "top10_best": top10_best,
+    "top5_worst": top5_worst
+}
+
 with open("monitor_output.json", "w") as f:
-    json.dump(top10, f, indent=2)
+    json.dump(output, f, indent=2)
 
-print("Fertig! Top 10 Ergebnisse in monitor_output.json gespeichert.")
+print("Fertig! Ergebnisse in monitor_output.json gespeichert.")
