@@ -2,7 +2,7 @@ name: Monitor Stocks
 
 on:
   schedule:
-    - cron: '0 * * * *'  # jede Stunde zur vollen Stunde
+    - cron: '0 * * * *'  # jede Stunde
   workflow_dispatch:
 
 jobs:
