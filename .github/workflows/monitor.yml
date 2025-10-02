@@ -1,0 +1,25 @@
+name: Run Python Monitor every 5 minutes
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # alle 5 Minuten (Achtung: UTC-Zeit!)
+  workflow_dispatch:        # optional: erlaubt manuelles Starten
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run monitor script
+        run: python monitor.py
