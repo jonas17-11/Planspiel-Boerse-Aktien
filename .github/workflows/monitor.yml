@@ -2,24 +2,36 @@ name: Run Python Monitor every 5 minutes
 
 on:
   schedule:
-    - cron: '*/5 * * * *'   # alle 5 Minuten (Achtung: UTC-Zeit!)
-  workflow_dispatch:        # optional: erlaubt manuelles Starten
+    - cron: '*/5 * * * *'   # alle 5 Minuten (UTC)
+  workflow_dispatch:        # erlaubt manuelles Starten
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
     steps:
+      # 1️⃣ Repo auschecken
       - uses: actions/checkout@v4
 
+      # 2️⃣ Python einrichten
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
+      # 3️⃣ Abhängigkeiten installieren
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # 4️⃣ Script ausführen
       - name: Run monitor script
         run: python monitor.py
+
+      # 5️⃣ JSON-Datei hochladen (Artifact)
+      - name: Upload monitor_output.json
+        if: always()              # immer ausführen, auch wenn Script Fehler hatte
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitor-output
+          path: monitor_output.json
