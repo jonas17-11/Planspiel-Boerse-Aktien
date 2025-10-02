@@ -6,7 +6,7 @@ import time
 import yfinance as yf
 import requests
 
-# --- Konfiguration via GitHub Secrets / Umgebungsvariablen ---
+# --- Konfiguration ---
 TICKERS = [t.strip().upper() for t in os.getenv("TICKERS", "AAPL,MSFT,GOOG").split(",")]
 GAME_API = os.getenv("GAME_API_URL", "").strip() or None
 ALERT_THRESHOLD = float(os.getenv("ALERT_THRESHOLD", "0.5"))
@@ -14,7 +14,6 @@ TELEGRAM_ENABLED = os.getenv("TELEGRAM_ENABLED", "false").lower() == "true"
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
-# Timeout für Requests
 HTTP_TIMEOUT = 10
 
 # --- Funktionen ---
@@ -22,7 +21,6 @@ def fetch_market_prices(tickers):
     """Holt alle Kurse in einem Request via yfinance."""
     try:
         data = yf.download(tickers=tickers, period="1d", interval="1m", progress=False)
-        # letzte Close-Preise
         if len(tickers) == 1:
             return {tickers[0]: float(data['Close'].iloc[-1])}
         else:
@@ -35,31 +33,35 @@ def fetch_game_price(symbol: str):
     """Optional: Preis aus Spiel-API"""
     if not GAME_API:
         return None
-    url = GAME_API.replace("{symbol}", symbol)
-    resp = requests.get(url, timeout=HTTP_TIMEOUT)
-    resp.raise_for_status()
-    j = resp.json()
-    if isinstance(j, (int, float, str)):
-        return float(j)
-    if isinstance(j, dict):
-        if "price" in j:
-            return float(j["price"])
-        for v in j.values():
-            if isinstance(v, (int, float)):
-                return float(v)
+    try:
+        url = GAME_API.replace("{symbol}", symbol)
+        resp = requests.get(url, timeout=HTTP_TIMEOUT)
+        resp.raise_for_status()
+        j = resp.json()
+        if isinstance(j, (int, float, str)):
+            return float(j)
+        if isinstance(j, dict):
+            if "price" in j:
+                return float(j["price"])
+            for v in j.values():
+                if isinstance(v, (int, float)):
+                    return float(v)
+    except Exception as e:
+        print(f"Fehler Game API {symbol}: {e}")
     return None
 
 def send_telegram(message: str):
     if not (TELEGRAM_TOKEN and TELEGRAM_CHAT_ID):
         print("Telegram nicht konfiguriert.")
         return
-    api = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
     try:
+        api = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
         requests.post(api, data=payload, timeout=HTTP_TIMEOUT)
     except Exception as e:
         print("Fehler beim Telegram-Senden:", e)
 
+# --- Main ---
 def main():
     ts = int(time.time())
     results = []
@@ -76,14 +78,10 @@ def main():
         entry["market"] = market
 
         # Spielpreis
-        if GAME_API:
-            try:
-                game = fetch_game_price(sym)
-                entry["game"] = game
-                if game is not None:
-                    entry["delta"] = market - game
-            except Exception as e:
-                entry["error"] = f"Game API Fehler: {e}"
+        game = fetch_game_price(sym)
+        entry["game"] = game
+        if game is not None:
+            entry["delta"] = market - game
 
         results.append(entry)
 
@@ -94,10 +92,11 @@ def main():
             if TELEGRAM_ENABLED:
                 send_telegram(msg)
 
-    # JSON Output
-    with open("monitor_output.json", "w") as f:
+    # JSON Output für Artifact
+    output_file = "monitor_output.json"
+    with open(output_file, "w") as f:
         json.dump({"timestamp": ts, "results": results}, f, indent=2)
-    print("Fertig. Ergebnisse geschrieben: monitor_output.json")
+    print(f"Fertig. Ergebnisse geschrieben: {output_file}")
 
 if __name__ == "__main__":
     main()
