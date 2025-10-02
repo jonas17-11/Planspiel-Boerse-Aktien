@@ -3,7 +3,7 @@ name: Monitor Stocks
 on:
   schedule:
     - cron: '0 * * * *'  # jede Stunde zur vollen Stunde
-  workflow_dispatch:  # erlaubt manuelles Ausführen
+  workflow_dispatch:
 
 jobs:
   monitor:
@@ -27,7 +27,7 @@ jobs:
         run: python monitor.py
 
       - name: JSON-Datei als Artifact hochladen
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: monitor-output
           path: monitor_output.json
