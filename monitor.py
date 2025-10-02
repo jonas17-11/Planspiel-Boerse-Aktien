@@ -23,19 +23,27 @@ for ticker in tickers:
     except Exception as e:
         print(f"Fehler bei {ticker}: {e}")
 
-# Top 10 Aktien mit höchster positiver Veränderung
+# Top 10 beste Aktien
 top10_best = sorted(results, key=lambda x: x["change_percent"], reverse=True)[:10]
 
-# Top 5 Aktien mit größter negativer Veränderung
+# Top 5 schlechteste Aktien
 top5_worst = sorted(results, key=lambda x: x["change_percent"])[:5]
 
-# Ausgabe in JSON speichern
+# JSON speichern
 output = {
     "top10_best": top10_best,
     "top5_worst": top5_worst
 }
-
 with open("monitor_output.json", "w") as f:
     json.dump(output, f, indent=2)
 
-print("Fertig! Ergebnisse in monitor_output.json gespeichert.")
+# GitHub Actions Log Ausgabe
+def print_table(title, data):
+    print(f"\n=== {title} ===")
+    print(f"{'Ticker':<10}{'Price':<10}{'Change (%)':<12}")
+    print("-" * 32)
+    for item in data:
+        print(f"{item['ticker']:<10}{item['last_price']:<10}{item['change_percent']:<12}")
+
+print_table("Top 10 Beste", top10_best)
+print_table("Top 5 Schlechteste", top5_worst)
