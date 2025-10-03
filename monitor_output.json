@@ -1,304 +1,284 @@
 {
-  "timestamp": "2025-10-03T18:46:48.661908Z",
+  "timestamp": "2025-10-03T19:21:25.418329Z",
   "data": [
     {
-      "ticker": "RGEN",
-      "price": 148.47,
-      "percent_change": 0.1
-    },
-    {
       "ticker": "SAIA",
-      "price": 296.7,
-      "percent_change": 0.1
+      "price": 297.19,
+      "percent_change": 0.21
     },
     {
-      "ticker": "SBUX",
-      "price": 86.18,
+      "ticker": "TSLA",
+      "price": 427.91,
       "percent_change": 0.09
     },
     {
-      "ticker": "INTU",
-      "price": 685.4,
+      "ticker": "ZBH",
+      "price": 100.54,
       "percent_change": 0.08
     },
     {
-      "ticker": "PCAR",
-      "price": 98.47,
-      "percent_change": 0.08
+      "ticker": "MET",
+      "price": 82.15,
+      "percent_change": 0.07
     },
     {
-      "ticker": "UNP",
-      "price": 236.5,
+      "ticker": "WFC",
+      "price": 81.01,
       "percent_change": 0.06
     },
     {
       "ticker": "BAX",
-      "price": 23.92,
+      "price": 23.94,
       "percent_change": 0.06
     },
     {
-      "ticker": "BSX",
-      "price": 97.57,
+      "ticker": "HBAN",
+      "price": 17.22,
+      "percent_change": 0.06
+    },
+    {
+      "ticker": "ABT",
+      "price": 134.77,
       "percent_change": 0.05
     },
     {
-      "ticker": "MSCI",
-      "price": 560.73,
+      "ticker": "NOW",
+      "price": 913.0,
       "percent_change": 0.05
     },
     {
-      "ticker": "AOS",
-      "price": 73.47,
-      "percent_change": 0.05
+      "ticker": "MDT",
+      "price": 97.55,
+      "percent_change": 0.04
     },
     {
-      "ticker": "AMAT",
-      "price": 218.12,
-      "percent_change": 0.05
+      "ticker": "TXN",
+      "price": 180.66,
+      "percent_change": 0.04
+    },
+    {
+      "ticker": "XBI",
+      "price": 103.8,
+      "percent_change": 0.04
+    },
+    {
+      "ticker": "ICE",
+      "price": 162.63,
+      "percent_change": 0.03
+    },
+    {
+      "ticker": "DE",
+      "price": 463.78,
+      "percent_change": 0.03
+    },
+    {
+      "ticker": "SWK",
+      "price": 75.22,
+      "percent_change": 0.03
+    },
+    {
+      "ticker": "MTZ",
+      "price": 215.26,
+      "percent_change": 0.03
     },
     {
       "ticker": "BDX",
       "price": 193.9,
-      "percent_change": 0.04
+      "percent_change": 0.03
     },
     {
-      "ticker": "IYR",
-      "price": 97.23,
-      "percent_change": 0.04
+      "ticker": "ISRG",
+      "price": 454.92,
+      "percent_change": 0.03
     },
     {
-      "ticker": "MDT",
-      "price": 97.29,
-      "percent_change": 0.04
+      "ticker": "TMO",
+      "price": 543.45,
+      "percent_change": 0.03
     },
     {
-      "ticker": "VNQ",
-      "price": 91.62,
-      "percent_change": 0.04
+      "ticker": "AMD",
+      "price": 164.8,
+      "percent_change": 0.03
+    },
+    {
+      "ticker": "ADBE",
+      "price": 347.15,
+      "percent_change": 0.02
+    },
+    {
+      "ticker": "VZ",
+      "price": 43.9,
+      "percent_change": 0.02
+    },
+    {
+      "ticker": "CAT",
+      "price": 500.06,
+      "percent_change": 0.02
+    },
+    {
+      "ticker": "SBUX",
+      "price": 86.51,
+      "percent_change": 0.02
+    },
+    {
+      "ticker": "WMT",
+      "price": 102.01,
+      "percent_change": 0.02
+    },
+    {
+      "ticker": "META",
+      "price": 714.27,
+      "percent_change": 0.02
+    },
+    {
+      "ticker": "AIG",
+      "price": 81.17,
+      "percent_change": 0.02
+    },
+    {
+      "ticker": "PNC",
+      "price": 198.78,
+      "percent_change": 0.02
     },
     {
       "ticker": "EWA",
       "price": 27.43,
-      "percent_change": 0.04
-    },
-    {
-      "ticker": "ALGN",
-      "price": 133.1,
-      "percent_change": 0.04
+      "percent_change": 0.02
     },
     {
       "ticker": "TTC",
-      "price": 76.36,
-      "percent_change": 0.04
-    },
-    {
-      "ticker": "ADBE",
-      "price": 347.08,
-      "percent_change": 0.03
-    },
-    {
-      "ticker": "PFG",
-      "price": 83.96,
-      "percent_change": 0.03
-    },
-    {
-      "ticker": "UPS",
-      "price": 86.87,
-      "percent_change": 0.03
-    },
-    {
-      "ticker": "CP",
-      "price": 77.47,
-      "percent_change": 0.03
-    },
-    {
-      "ticker": "ODFL",
-      "price": 141.77,
-      "percent_change": 0.03
-    },
-    {
-      "ticker": "ROK",
-      "price": 349.99,
-      "percent_change": 0.03
-    },
-    {
-      "ticker": "PRU",
-      "price": 103.82,
+      "price": 76.73,
       "percent_change": 0.02
     },
     {
-      "ticker": "MSFT",
-      "price": 517.64,
+      "ticker": "KEY",
+      "price": 18.67,
       "percent_change": 0.02
     },
     {
-      "ticker": "KO",
-      "price": 66.91,
+      "ticker": "BK",
+      "price": 106.36,
       "percent_change": 0.02
-    },
-    {
-      "ticker": "CNI",
-      "price": 95.9,
-      "percent_change": 0.02
-    },
-    {
-      "ticker": "EWY",
-      "price": 83.78,
-      "percent_change": 0.02
-    },
-    {
-      "ticker": "ITW",
-      "price": 260.82,
-      "percent_change": 0.02
-    },
-    {
-      "ticker": "LNC",
-      "price": 40.89,
-      "percent_change": 0.02
-    },
-    {
-      "ticker": "PNR",
-      "price": 113.05,
-      "percent_change": 0.02
-    },
-    {
-      "ticker": "SCHW",
-      "price": 94.08,
-      "percent_change": 0.02
-    },
-    {
-      "ticker": "AFL",
-      "price": 112.16,
-      "percent_change": 0.02
-    },
-    {
-      "ticker": "CHRW",
-      "price": 135.5,
-      "percent_change": 0.02
-    },
-    {
-      "ticker": "MET",
-      "price": 82.11,
-      "percent_change": 0.02
-    },
-    {
-      "ticker": "PG",
-      "price": 152.8,
-      "percent_change": 0.02
-    },
-    {
-      "ticker": "TRV",
-      "price": 285.59,
-      "percent_change": 0.01
-    },
-    {
-      "ticker": "DE",
-      "price": 463.32,
-      "percent_change": 0.01
     },
     {
       "ticker": "NSC",
-      "price": 299.82,
+      "price": 299.9,
+      "percent_change": 0.02
+    },
+    {
+      "ticker": "PFG",
+      "price": 84.14,
+      "percent_change": 0.02
+    },
+    {
+      "ticker": "RMD",
+      "price": 277.54,
       "percent_change": 0.01
     },
     {
-      "ticker": "PEP",
-      "price": 143.03,
+      "ticker": "CNI",
+      "price": 95.91,
       "percent_change": 0.01
     },
     {
-      "ticker": "ABBV",
-      "price": 234.95,
+      "ticker": "TFC",
+      "price": 45.63,
       "percent_change": 0.01
     },
     {
-      "ticker": "T",
-      "price": 27.12,
+      "ticker": "GL",
+      "price": 137.61,
       "percent_change": 0.01
     },
     {
-      "ticker": "HD",
-      "price": 396.33,
+      "ticker": "EW",
+      "price": 77.57,
       "percent_change": 0.01
     },
     {
-      "ticker": "JNJ",
-      "price": 189.1,
+      "ticker": "ITW",
+      "price": 260.7,
       "percent_change": 0.01
     },
     {
-      "ticker": "V",
-      "price": 351.42,
+      "ticker": "SYK",
+      "price": 370.72,
       "percent_change": 0.01
-    },
-    {
-      "ticker": "NKE",
-      "price": 72.4,
-      "percent_change": 0.01
-    },
-    {
-      "ticker": "TLT",
-      "price": 89.36,
-      "percent_change": 0.01
-    },
-    {
-      "ticker": "MMC",
-      "price": 201.85,
-      "percent_change": 0.01
-    },
-    {
-      "ticker": "AIG",
-      "price": 81.12,
-      "percent_change": 0.01
-    },
-    {
-      "ticker": "ABT",
-      "price": 135.04,
-      "percent_change": 0.01
-    },
-    {
-      "ticker": "VEEV",
-      "price": 296.63,
-      "percent_change": 0.01
-    },
-    {
-      "ticker": "EWQ",
-      "price": 44.82,
-      "percent_change": 0.01
-    },
-    {
-      "ticker": "EWU",
-      "price": 42.62,
-      "percent_change": 0.01
-    },
-    {
-      "ticker": "PFE",
-      "price": 27.56,
-      "percent_change": -0.0
-    },
-    {
-      "ticker": "LRCX",
-      "price": 146.0,
-      "percent_change": -0.0
-    },
-    {
-      "ticker": "WMT",
-      "price": 102.17,
-      "percent_change": 0.0
-    },
-    {
-      "ticker": "DIS",
-      "price": 113.02,
-      "percent_change": 0.0
-    },
-    {
-      "ticker": "NOW",
-      "price": 912.02,
-      "percent_change": -0.0
     },
     {
       "ticker": "SHY",
       "price": 82.81,
+      "percent_change": 0.01
+    },
+    {
+      "ticker": "ORCL",
+      "price": 286.44,
+      "percent_change": 0.01
+    },
+    {
+      "ticker": "CRM",
+      "price": 239.84,
+      "percent_change": 0.01
+    },
+    {
+      "ticker": "COST",
+      "price": 915.14,
+      "percent_change": 0.01
+    },
+    {
+      "ticker": "AVGO",
+      "price": 336.98,
+      "percent_change": 0.01
+    },
+    {
+      "ticker": "EWL",
+      "price": 56.62,
+      "percent_change": 0.01
+    },
+    {
+      "ticker": "DHR",
+      "price": 215.25,
+      "percent_change": 0.01
+    },
+    {
+      "ticker": "IYW",
+      "price": 197.61,
+      "percent_change": 0.01
+    },
+    {
+      "ticker": "VHT",
+      "price": 270.35,
+      "percent_change": 0.01
+    },
+    {
+      "ticker": "CVX",
+      "price": 153.86,
+      "percent_change": 0.0
+    },
+    {
+      "ticker": "PFE",
+      "price": 27.58,
+      "percent_change": 0.0
+    },
+    {
+      "ticker": "NFLX",
+      "price": 1155.19,
+      "percent_change": 0.0
+    },
+    {
+      "ticker": "CMCSA",
+      "price": 30.86,
+      "percent_change": -0.0
+    },
+    {
+      "ticker": "ABBV",
+      "price": 234.7,
+      "percent_change": -0.0
+    },
+    {
+      "ticker": "HD",
+      "price": 395.78,
       "percent_change": -0.0
     },
     {
@@ -307,28 +287,88 @@
       "percent_change": 0.0
     },
     {
-      "ticker": "AGG",
-      "price": 100.21,
+      "ticker": "QGEN",
+      "price": 46.7,
+      "percent_change": 0.0
+    },
+    {
+      "ticker": "ILMN",
+      "price": 102.53,
+      "percent_change": 0.0
+    },
+    {
+      "ticker": "HYG",
+      "price": 80.86,
+      "percent_change": 0.0
+    },
+    {
+      "ticker": "IYR",
+      "price": 97.22,
+      "percent_change": 0.0
+    },
+    {
+      "ticker": "VNQ",
+      "price": 91.6,
       "percent_change": -0.0
     },
     {
-      "ticker": "EWC",
-      "price": 51.18,
+      "ticker": "EEM",
+      "price": 54.21,
       "percent_change": 0.0
     },
     {
-      "ticker": "EEM",
-      "price": 54.22,
+      "ticker": "EXAS",
+      "price": 56.86,
       "percent_change": 0.0
+    },
+    {
+      "ticker": "AGG",
+      "price": 100.18,
+      "percent_change": -0.0
     },
     {
       "ticker": "BND",
-      "price": 74.33,
-      "percent_change": 0.0
+      "price": 74.31,
+      "percent_change": -0.0
+    },
+    {
+      "ticker": "LQD",
+      "price": 111.53,
+      "percent_change": -0.0
     },
     {
       "ticker": "EEM",
-      "price": 54.22,
+      "price": 54.21,
+      "percent_change": 0.0
+    },
+    {
+      "ticker": "RGEN",
+      "price": 148.54,
+      "percent_change": 0.0
+    },
+    {
+      "ticker": "CME",
+      "price": 265.32,
+      "percent_change": 0.0
+    },
+    {
+      "ticker": "FITB",
+      "price": 44.47,
+      "percent_change": 0.0
+    },
+    {
+      "ticker": "LSTR",
+      "price": 122.82,
+      "percent_change": -0.0
+    },
+    {
+      "ticker": "CP",
+      "price": 77.49,
+      "percent_change": 0.0
+    },
+    {
+      "ticker": "PCAR",
+      "price": 97.64,
       "percent_change": 0.0
     },
     {
@@ -337,569 +377,529 @@
       "percent_change": -0.0
     },
     {
-      "ticker": "DIA",
-      "price": 468.3,
-      "percent_change": 0.0
-    },
-    {
-      "ticker": "VEA",
-      "price": 61.03,
-      "percent_change": 0.0
-    },
-    {
-      "ticker": "DHR",
-      "price": 215.38,
-      "percent_change": -0.0
-    },
-    {
-      "ticker": "DOV",
-      "price": 166.96,
-      "percent_change": -0.0
-    },
-    {
-      "ticker": "EW",
-      "price": 77.51,
-      "percent_change": 0.0
-    },
-    {
-      "ticker": "FAST",
-      "price": 48.06,
-      "percent_change": 0.0
-    },
-    {
-      "ticker": "L",
-      "price": 101.89,
-      "percent_change": 0.0
+      "ticker": "UNP",
+      "price": 236.59,
+      "percent_change": -0.01
     },
     {
       "ticker": "PGR",
-      "price": 247.33,
-      "percent_change": -0.0
-    },
-    {
-      "ticker": "GS",
-      "price": 790.56,
-      "percent_change": 0.0
-    },
-    {
-      "ticker": "EWG",
-      "price": 42.38,
-      "percent_change": 0.0
-    },
-    {
-      "ticker": "BA",
-      "price": 216.23,
-      "percent_change": -0.0
-    },
-    {
-      "ticker": "AVGO",
-      "price": 337.64,
+      "price": 246.57,
       "percent_change": -0.01
     },
     {
-      "ticker": "CRM",
-      "price": 240.21,
+      "ticker": "TRV",
+      "price": 285.42,
       "percent_change": -0.01
     },
     {
-      "ticker": "NFLX",
-      "price": 1153.33,
+      "ticker": "C",
+      "price": 97.77,
       "percent_change": -0.01
     },
     {
-      "ticker": "XOM",
-      "price": 113.48,
+      "ticker": "SCHW",
+      "price": 94.18,
       "percent_change": -0.01
     },
     {
-      "ticker": "COST",
-      "price": 915.72,
+      "ticker": "INTU",
+      "price": 683.02,
       "percent_change": -0.01
     },
     {
-      "ticker": "AAPL",
-      "price": 258.43,
+      "ticker": "KO",
+      "price": 66.82,
       "percent_change": -0.01
     },
     {
-      "ticker": "VPL",
-      "price": 89.64,
+      "ticker": "PG",
+      "price": 152.57,
       "percent_change": -0.01
     },
     {
-      "ticker": "EWJ",
-      "price": 81.75,
-      "percent_change": -0.01
-    },
-    {
-      "ticker": "EXAS",
-      "price": 56.83,
-      "percent_change": -0.01
-    },
-    {
-      "ticker": "QGEN",
-      "price": 46.72,
-      "percent_change": -0.01
-    },
-    {
-      "ticker": "LQD",
-      "price": 111.55,
-      "percent_change": -0.01
-    },
-    {
-      "ticker": "EFA",
-      "price": 95.06,
-      "percent_change": -0.01
-    },
-    {
-      "ticker": "EFA",
-      "price": 95.06,
-      "percent_change": -0.01
-    },
-    {
-      "ticker": "HYG",
-      "price": 80.85,
-      "percent_change": -0.01
-    },
-    {
-      "ticker": "HOLX",
-      "price": 68.31,
-      "percent_change": -0.01
-    },
-    {
-      "ticker": "COO",
-      "price": 70.44,
-      "percent_change": -0.01
-    },
-    {
-      "ticker": "WAB",
-      "price": 200.91,
-      "percent_change": -0.01
-    },
-    {
-      "ticker": "CINF",
-      "price": 163.83,
-      "percent_change": -0.01
-    },
-    {
-      "ticker": "VHT",
-      "price": 270.19,
-      "percent_change": -0.01
-    },
-    {
-      "ticker": "XBI",
-      "price": 103.56,
+      "ticker": "V",
+      "price": 350.45,
       "percent_change": -0.01
     },
     {
       "ticker": "XYL",
-      "price": 150.16,
+      "price": 150.21,
       "percent_change": -0.01
     },
     {
-      "ticker": "KNX",
-      "price": 41.13,
+      "ticker": "HOLX",
+      "price": 68.38,
       "percent_change": -0.01
     },
     {
-      "ticker": "VZ",
-      "price": 43.85,
+      "ticker": "FLS",
+      "price": 52.84,
       "percent_change": -0.01
     },
     {
-      "ticker": "ALL",
-      "price": 211.54,
+      "ticker": "EWU",
+      "price": 42.63,
       "percent_change": -0.01
     },
     {
-      "ticker": "GBX",
-      "price": 46.09,
+      "ticker": "VEA",
+      "price": 61.03,
+      "percent_change": -0.01
+    },
+    {
+      "ticker": "TLT",
+      "price": 89.31,
+      "percent_change": -0.01
+    },
+    {
+      "ticker": "EWJ",
+      "price": 81.76,
+      "percent_change": -0.01
+    },
+    {
+      "ticker": "EWQ",
+      "price": 44.85,
+      "percent_change": -0.01
+    },
+    {
+      "ticker": "EWG",
+      "price": 42.38,
+      "percent_change": -0.01
+    },
+    {
+      "ticker": "VPL",
+      "price": 89.65,
+      "percent_change": -0.01
+    },
+    {
+      "ticker": "EWY",
+      "price": 83.8,
+      "percent_change": -0.01
+    },
+    {
+      "ticker": "NDAQ",
+      "price": 87.94,
+      "percent_change": -0.01
+    },
+    {
+      "ticker": "CINF",
+      "price": 163.62,
+      "percent_change": -0.01
+    },
+    {
+      "ticker": "ZION",
+      "price": 56.93,
+      "percent_change": -0.02
+    },
+    {
+      "ticker": "PRU",
+      "price": 103.91,
+      "percent_change": -0.02
+    },
+    {
+      "ticker": "FHN",
+      "price": 22.62,
+      "percent_change": -0.02
+    },
+    {
+      "ticker": "AFL",
+      "price": 112.14,
+      "percent_change": -0.02
+    },
+    {
+      "ticker": "RF",
+      "price": 26.42,
+      "percent_change": -0.02
+    },
+    {
+      "ticker": "GWW",
+      "price": 963.79,
+      "percent_change": -0.02
+    },
+    {
+      "ticker": "VRSK",
+      "price": 249.4,
+      "percent_change": -0.02
+    },
+    {
+      "ticker": "EWC",
+      "price": 51.19,
+      "percent_change": -0.02
+    },
+    {
+      "ticker": "DOV",
+      "price": 166.75,
       "percent_change": -0.02
     },
     {
       "ticker": "XPO",
-      "price": 128.64,
+      "price": 128.33,
       "percent_change": -0.02
     },
     {
-      "ticker": "CVX",
-      "price": 153.99,
-      "percent_change": -0.02
-    },
-    {
-      "ticker": "SPGI",
-      "price": 480.64,
-      "percent_change": -0.02
-    },
-    {
-      "ticker": "AMZN",
-      "price": 219.55,
+      "ticker": "AME",
+      "price": 184.02,
       "percent_change": -0.02
     },
     {
       "ticker": "GOOG",
-      "price": 245.99,
-      "percent_change": -0.02
-    },
-    {
-      "ticker": "WAT",
-      "price": 329.84,
-      "percent_change": -0.02
-    },
-    {
-      "ticker": "LSTR",
-      "price": 122.69,
-      "percent_change": -0.02
-    },
-    {
-      "ticker": "SPY",
-      "price": 669.78,
-      "percent_change": -0.02
-    },
-    {
-      "ticker": "IEX",
-      "price": 167.21,
-      "percent_change": -0.02
-    },
-    {
-      "ticker": "ICE",
-      "price": 162.66,
-      "percent_change": -0.02
-    },
-    {
-      "ticker": "MS",
-      "price": 156.99,
+      "price": 245.07,
       "percent_change": -0.02
     },
     {
       "ticker": "MMM",
-      "price": 158.82,
+      "price": 158.07,
+      "percent_change": -0.02
+    },
+    {
+      "ticker": "T",
+      "price": 27.08,
+      "percent_change": -0.02
+    },
+    {
+      "ticker": "BA",
+      "price": 216.53,
       "percent_change": -0.03
     },
     {
-      "ticker": "MRK",
-      "price": 89.75,
-      "percent_change": -0.03
-    },
-    {
-      "ticker": "TXN",
-      "price": 180.66,
+      "ticker": "CSCO",
+      "price": 68.05,
       "percent_change": -0.03
     },
     {
       "ticker": "BAC",
-      "price": 50.77,
+      "price": 50.78,
+      "percent_change": -0.03
+    },
+    {
+      "ticker": "MSFT",
+      "price": 517.91,
+      "percent_change": -0.03
+    },
+    {
+      "ticker": "JPM",
+      "price": 310.2,
+      "percent_change": -0.03
+    },
+    {
+      "ticker": "UPS",
+      "price": 87.07,
+      "percent_change": -0.03
+    },
+    {
+      "ticker": "JBHT",
+      "price": 138.13,
+      "percent_change": -0.03
+    },
+    {
+      "ticker": "GE",
+      "price": 298.05,
       "percent_change": -0.03
     },
     {
       "ticker": "QQQ",
-      "price": 603.38,
+      "price": 603.24,
       "percent_change": -0.03
     },
     {
-      "ticker": "EWL",
-      "price": 56.6,
-      "percent_change": -0.03
-    },
-    {
-      "ticker": "BK",
-      "price": 106.31,
-      "percent_change": -0.03
-    },
-    {
-      "ticker": "NDAQ",
-      "price": 87.93,
-      "percent_change": -0.03
-    },
-    {
-      "ticker": "UNM",
-      "price": 79.29,
+      "ticker": "SPY",
+      "price": 669.52,
       "percent_change": -0.03
     },
     {
       "ticker": "VGT",
-      "price": 756.37,
+      "price": 755.89,
       "percent_change": -0.03
     },
     {
-      "ticker": "GWW",
-      "price": 967.03,
+      "ticker": "EFA",
+      "price": 95.08,
       "percent_change": -0.03
     },
     {
-      "ticker": "SWK",
-      "price": 75.13,
+      "ticker": "UNM",
+      "price": 79.42,
       "percent_change": -0.03
     },
     {
-      "ticker": "IBM",
-      "price": 289.49,
+      "ticker": "IWM",
+      "price": 245.82,
+      "percent_change": -0.03
+    },
+    {
+      "ticker": "DIA",
+      "price": 467.84,
       "percent_change": -0.03
     },
     {
       "ticker": "CSX",
-      "price": 36.0,
+      "price": 35.97,
+      "percent_change": -0.03
+    },
+    {
+      "ticker": "EFA",
+      "price": 95.08,
+      "percent_change": -0.03
+    },
+    {
+      "ticker": "IEX",
+      "price": 167.04,
+      "percent_change": -0.03
+    },
+    {
+      "ticker": "BSX",
+      "price": 97.47,
+      "percent_change": -0.03
+    },
+    {
+      "ticker": "ALL",
+      "price": 211.21,
       "percent_change": -0.04
     },
     {
-      "ticker": "CSCO",
-      "price": 68.16,
+      "ticker": "USB",
+      "price": 48.13,
       "percent_change": -0.04
     },
     {
-      "ticker": "VRSK",
-      "price": 250.05,
+      "ticker": "AMZN",
+      "price": 219.69,
       "percent_change": -0.04
     },
     {
-      "ticker": "TSLA",
-      "price": 422.84,
+      "ticker": "AAPL",
+      "price": 257.95,
       "percent_change": -0.04
     },
     {
-      "ticker": "JPM",
-      "price": 310.25,
+      "ticker": "STT",
+      "price": 116.17,
       "percent_change": -0.04
     },
     {
-      "ticker": "IYW",
-      "price": 197.64,
+      "ticker": "CMA",
+      "price": 70.65,
       "percent_change": -0.04
     },
     {
-      "ticker": "IWM",
-      "price": 245.75,
+      "ticker": "MMC",
+      "price": 200.98,
+      "percent_change": -0.04
+    },
+    {
+      "ticker": "GBX",
+      "price": 46.11,
+      "percent_change": -0.04
+    },
+    {
+      "ticker": "MS",
+      "price": 157.24,
+      "percent_change": -0.04
+    },
+    {
+      "ticker": "ALGN",
+      "price": 133.11,
+      "percent_change": -0.04
+    },
+    {
+      "ticker": "AOS",
+      "price": 73.43,
       "percent_change": -0.04
     },
     {
       "ticker": "IYF",
-      "price": 125.83,
+      "price": 125.77,
       "percent_change": -0.04
     },
     {
-      "ticker": "CME",
-      "price": 264.94,
+      "ticker": "CHRW",
+      "price": 135.71,
       "percent_change": -0.04
-    },
-    {
-      "ticker": "ISRG",
-      "price": 454.55,
-      "percent_change": -0.04
-    },
-    {
-      "ticker": "TFC",
-      "price": 45.6,
-      "percent_change": -0.04
-    },
-    {
-      "ticker": "EMR",
-      "price": 134.72,
-      "percent_change": -0.04
-    },
-    {
-      "ticker": "AME",
-      "price": 184.24,
-      "percent_change": -0.04
-    },
-    {
-      "ticker": "META",
-      "price": 713.31,
-      "percent_change": -0.05
-    },
-    {
-      "ticker": "NVDA",
-      "price": 187.4,
-      "percent_change": -0.05
-    },
-    {
-      "ticker": "AMD",
-      "price": 164.57,
-      "percent_change": -0.05
-    },
-    {
-      "ticker": "ILMN",
-      "price": 102.34,
-      "percent_change": -0.05
-    },
-    {
-      "ticker": "FHN",
-      "price": 22.56,
-      "percent_change": -0.05
-    },
-    {
-      "ticker": "C",
-      "price": 97.74,
-      "percent_change": -0.05
-    },
-    {
-      "ticker": "PNC",
-      "price": 198.67,
-      "percent_change": -0.05
-    },
-    {
-      "ticker": "FITB",
-      "price": 44.4,
-      "percent_change": -0.05
-    },
-    {
-      "ticker": "STT",
-      "price": 116.13,
-      "percent_change": -0.06
-    },
-    {
-      "ticker": "RMD",
-      "price": 277.47,
-      "percent_change": -0.06
-    },
-    {
-      "ticker": "CMA",
-      "price": 70.61,
-      "percent_change": -0.06
-    },
-    {
-      "ticker": "HBAN",
-      "price": 17.19,
-      "percent_change": -0.06
-    },
-    {
-      "ticker": "PNFP",
-      "price": 93.29,
-      "percent_change": -0.06
-    },
-    {
-      "ticker": "FDX",
-      "price": 243.05,
-      "percent_change": -0.06
-    },
-    {
-      "ticker": "GE",
-      "price": 298.28,
-      "percent_change": -0.06
-    },
-    {
-      "ticker": "QCOM",
-      "price": 169.4,
-      "percent_change": -0.06
-    },
-    {
-      "ticker": "WFC",
-      "price": 80.89,
-      "percent_change": -0.06
-    },
-    {
-      "ticker": "USB",
-      "price": 48.12,
-      "percent_change": -0.06
-    },
-    {
-      "ticker": "JBHT",
-      "price": 137.58,
-      "percent_change": -0.07
-    },
-    {
-      "ticker": "RF",
-      "price": 26.36,
-      "percent_change": -0.07
-    },
-    {
-      "ticker": "ZBH",
-      "price": 100.43,
-      "percent_change": -0.07
-    },
-    {
-      "ticker": "IQV",
-      "price": 206.36,
-      "percent_change": -0.07
-    },
-    {
-      "ticker": "TMO",
-      "price": 542.8,
-      "percent_change": -0.08
-    },
-    {
-      "ticker": "CAT",
-      "price": 499.37,
-      "percent_change": -0.08
-    },
-    {
-      "ticker": "KEY",
-      "price": 18.62,
-      "percent_change": -0.08
-    },
-    {
-      "ticker": "SYK",
-      "price": 370.81,
-      "percent_change": -0.08
-    },
-    {
-      "ticker": "AON",
-      "price": 364.65,
-      "percent_change": -0.09
-    },
-    {
-      "ticker": "INTC",
-      "price": 37.18,
-      "percent_change": -0.09
-    },
-    {
-      "ticker": "PYPL",
-      "price": 69.36,
-      "percent_change": -0.09
-    },
-    {
-      "ticker": "MTZ",
-      "price": 215.03,
-      "percent_change": -0.09
-    },
-    {
-      "ticker": "ORCL",
-      "price": 286.41,
-      "percent_change": -0.09
-    },
-    {
-      "ticker": "CMCSA",
-      "price": 30.93,
-      "percent_change": -0.1
-    },
-    {
-      "ticker": "ZION",
-      "price": 56.8,
-      "percent_change": -0.11
-    },
-    {
-      "ticker": "FLS",
-      "price": 52.97,
-      "percent_change": -0.12
-    },
-    {
-      "ticker": "GL",
-      "price": 138.01,
-      "percent_change": -0.12
-    },
-    {
-      "ticker": "MU",
-      "price": 187.35,
-      "percent_change": -0.13
-    },
-    {
-      "ticker": "TRN",
-      "price": 28.03,
-      "percent_change": -0.14
     },
     {
       "ticker": "EXPD",
-      "price": 124.17,
-      "percent_change": -0.16
+      "price": 124.16,
+      "percent_change": -0.04
+    },
+    {
+      "ticker": "NVDA",
+      "price": 187.3,
+      "percent_change": -0.04
+    },
+    {
+      "ticker": "QCOM",
+      "price": 169.25,
+      "percent_change": -0.04
+    },
+    {
+      "ticker": "XOM",
+      "price": 113.43,
+      "percent_change": -0.04
+    },
+    {
+      "ticker": "DIS",
+      "price": 112.78,
+      "percent_change": -0.05
+    },
+    {
+      "ticker": "EMR",
+      "price": 134.5,
+      "percent_change": -0.05
+    },
+    {
+      "ticker": "ROK",
+      "price": 349.43,
+      "percent_change": -0.05
+    },
+    {
+      "ticker": "LRCX",
+      "price": 146.03,
+      "percent_change": -0.05
+    },
+    {
+      "ticker": "MU",
+      "price": 187.57,
+      "percent_change": -0.05
+    },
+    {
+      "ticker": "IQV",
+      "price": 207.24,
+      "percent_change": -0.05
     },
     {
       "ticker": "IDXX",
-      "price": 630.15,
-      "percent_change": -0.16
+      "price": 631.16,
+      "percent_change": -0.05
+    },
+    {
+      "ticker": "FAST",
+      "price": 48.01,
+      "percent_change": -0.06
+    },
+    {
+      "ticker": "LNC",
+      "price": 40.99,
+      "percent_change": -0.06
+    },
+    {
+      "ticker": "KNX",
+      "price": 41.28,
+      "percent_change": -0.06
+    },
+    {
+      "ticker": "INTC",
+      "price": 37.17,
+      "percent_change": -0.07
+    },
+    {
+      "ticker": "IBM",
+      "price": 288.93,
+      "percent_change": -0.07
+    },
+    {
+      "ticker": "PNFP",
+      "price": 93.36,
+      "percent_change": -0.07
+    },
+    {
+      "ticker": "FDX",
+      "price": 244.02,
+      "percent_change": -0.07
+    },
+    {
+      "ticker": "WAB",
+      "price": 200.39,
+      "percent_change": -0.07
+    },
+    {
+      "ticker": "PYPL",
+      "price": 69.39,
+      "percent_change": -0.08
+    },
+    {
+      "ticker": "PEP",
+      "price": 142.41,
+      "percent_change": -0.08
+    },
+    {
+      "ticker": "NKE",
+      "price": 72.4,
+      "percent_change": -0.08
+    },
+    {
+      "ticker": "MSCI",
+      "price": 559.69,
+      "percent_change": -0.08
+    },
+    {
+      "ticker": "ODFL",
+      "price": 141.91,
+      "percent_change": -0.09
+    },
+    {
+      "ticker": "SPGI",
+      "price": 479.12,
+      "percent_change": -0.09
+    },
+    {
+      "ticker": "WAT",
+      "price": 330.16,
+      "percent_change": -0.09
+    },
+    {
+      "ticker": "TRN",
+      "price": 28.09,
+      "percent_change": -0.09
+    },
+    {
+      "ticker": "GS",
+      "price": 789.41,
+      "percent_change": -0.09
+    },
+    {
+      "ticker": "AON",
+      "price": 363.88,
+      "percent_change": -0.09
+    },
+    {
+      "ticker": "JNJ",
+      "price": 188.77,
+      "percent_change": -0.1
+    },
+    {
+      "ticker": "L",
+      "price": 101.71,
+      "percent_change": -0.1
+    },
+    {
+      "ticker": "COO",
+      "price": 70.53,
+      "percent_change": -0.11
+    },
+    {
+      "ticker": "AMAT",
+      "price": 218.05,
+      "percent_change": -0.11
+    },
+    {
+      "ticker": "PNR",
+      "price": 112.77,
+      "percent_change": -0.12
+    },
+    {
+      "ticker": "VEEV",
+      "price": 296.64,
+      "percent_change": -0.12
+    },
+    {
+      "ticker": "MRK",
+      "price": 89.52,
+      "percent_change": -0.13
     },
     {
       "ticker": "BOKF",
-      "price": 113.4,
-      "percent_change": -0.24
+      "price": 113.38,
+      "percent_change": -0.16
     }
   ]
 }
