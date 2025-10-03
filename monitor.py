@@ -35,14 +35,13 @@ top_10 = df.sort_values(by="change_pct", ascending=False).head(10)
 # Bottom 5 nach Performance
 bottom_5 = df.sort_values(by="change_pct", ascending=True).head(5)
 
-# Zusammenführen
-result = {
-    "top_10": top_10.set_index("ticker")["price"].to_dict(),
-    "bottom_5": bottom_5.set_index("ticker")["price"].to_dict()
-}
+# Ergebnis flach zusammenführen für Numerics
+result = {}
+for _, row in pd.concat([top_10, bottom_5]).iterrows():
+    result[row["ticker"]] = row["price"]
 
 # JSON speichern
 with open("monitor_output.json", "w") as f:
     json.dump(result, f, indent=2)
 
-print("monitor_output.json mit Top 10 / Bottom 5 wurde erfolgreich erstellt!")
+print("monitor_output.json (flach für Numerics) wurde erfolgreich erstellt!")
