@@ -2,8 +2,8 @@ name: Discord Update
 
 on:
   schedule:
-    - cron: '0 * * * *'  # jede Stunde
-  workflow_dispatch:
+    - cron: '5 * * * *'  # jede Stunde und fünf Minuten
+  workflow_dispatch:  # manuell starten möglich
 
 jobs:
   discord_post:
