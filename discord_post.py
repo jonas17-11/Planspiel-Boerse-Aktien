@@ -34,14 +34,21 @@ msg += "\n**📉 Top 5 Verlierer der Stunde:**\n"
 for _, row in flop5.iterrows():
     msg += f"{row['ticker']}: {row['price']} USD ({row['percent_change']}%)\n"
 
-# Diagramm für Top 3 Gewinner
-plt.figure(figsize=(6,4))
+# Kombiniertes Diagramm Top 3 Gewinner + Flop 5 Verlierer
+fig, ax = plt.subplots(figsize=(10,5))
+
+# Balken für Gewinner
 top3 = df_sorted.head(3)
-plt.bar(top3['ticker'], top3['percent_change'], color='green')
-plt.ylabel('Prozentuale Veränderung (%)')
-plt.title('Top 3 Gewinner der Stunde')
+ax.bar(top3['ticker'], top3['percent_change'], color='green', label='Top 3 Gewinner')
+
+# Balken für Verlierer
+ax.bar(flop5['ticker'], flop5['percent_change'], color='red', label='Flop 5 Verlierer')
+
+ax.set_ylabel('Prozentuale Veränderung (%)')
+ax.set_title('Top 3 Gewinner vs Flop 5 Verlierer der Stunde')
+ax.legend()
 plt.tight_layout()
-chart_file = "top3_chart.png"
+chart_file = "combined_chart.png"
 plt.savefig(chart_file)
 plt.close()
 
@@ -50,7 +57,7 @@ webhook = DiscordWebhook(url=WEBHOOK_URL, content=msg)
 
 # Chart anhängen
 with open(chart_file, "rb") as f:
-    webhook.add_file(file=f.read(), filename="top3_chart.png")
+    webhook.add_file(file=f.read(), filename="combined_chart.png")
 
 # KI-Fazit optional, robust gegen Quota-Limit
 try:
