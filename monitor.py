@@ -8,6 +8,8 @@ tickers_file = "tickers.txt"
 with open(tickers_file, "r") as f:
     tickers = [line.strip() for line in f if line.strip()]
 
+print(f"Es werden {len(tickers)} Ticker verarbeitet...")
+
 # ---- Kurse abrufen ----
 data = []
 for ticker in tickers:
@@ -22,6 +24,10 @@ for ticker in tickers:
         data.append({"ticker": ticker, "change_percent": round(change_percent, 2)})
     except Exception as e:
         print(f"Fehler bei {ticker}: {e}")
+
+if not data:
+    print("Keine Kursdaten abgerufen. JSON wird nicht erstellt.")
+    exit()
 
 # ---- Top 10 / Bottom 5 ----
 df = pd.DataFrame(data)
