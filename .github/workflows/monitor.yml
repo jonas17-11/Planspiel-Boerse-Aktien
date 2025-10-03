@@ -33,7 +33,7 @@ jobs:
           git checkout -b monitor-output-update
           git add monitor_output.json
           git commit -m "Update monitor_output.json"
-          git push https://<DEIN_USERNAME>:${{ secrets.PAT_TOKEN }}@github.com/<DEIN_USERNAME>/<DEIN_REPO>.git monitor-output-update
+          git push https://jonas17-11:${{ secrets.PAT_TOKEN }}@github.com/<DEIN_USERNAME>/Planspiel-Boerse-Aktien.git monitor-output-update
         env:
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
 
