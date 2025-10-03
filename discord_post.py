@@ -52,7 +52,7 @@ webhook = DiscordWebhook(url=WEBHOOK_URL, content=msg)
 with open(chart_file, "rb") as f:
     webhook.add_file(file=f.read(), filename="top3_chart.png")
 
-# KI-Fazit optional
+# KI-Fazit optional, robust gegen Quota-Limit
 try:
     top_tickers = ', '.join(top10['ticker'].tolist())
     flop_tickers = ', '.join(flop5['ticker'].tolist())
@@ -74,7 +74,8 @@ Bitte schreibe eine kurze Einschätzung (3-4 Sätze), welche Aktien interessant 
     ki_fazit = response.choices[0].message.content.strip()
     embed = DiscordEmbed(title="💡 KI Einschätzung", description=ki_fazit, color=0x00ff00)
     webhook.add_embed(embed)
-except openai.error.OpenAIError as e:
+
+except Exception as e:
     print(f"⚠️ KI-Fazit konnte nicht erstellt werden: {e}")
 
 # Nachricht posten
