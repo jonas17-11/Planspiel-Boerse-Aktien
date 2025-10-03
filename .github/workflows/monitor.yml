@@ -33,23 +33,12 @@ jobs:
       - name: Monitor Script ausführen
         run: python monitor.py
 
-      # Änderungen committen und pushen auf neuen Branch mit Force
+      # Änderungen committen und direkt auf main pushen
       - name: Änderungen committen und pushen
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git checkout -b monitor-output-update
+          git checkout main
           git add monitor_output.json
-          git commit -m "Update monitor_output.json"
-          git push --force https://jonas17-11:${{ secrets.PAT_TOKEN }}@github.com/jonas17-11/Planspiel-Boerse-Aktien.git monitor-output-update
-
-      # Pull Request erstellen oder aktualisieren
-      - name: Pull Request erstellen
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.PAT_TOKEN }}
-          commit-message: Update monitor_output.json
-          branch: monitor-output-update
-          base: main
-          title: "Automatisches Update monitor_output.json"
-          body: "Dieser Pull Request aktualisiert die monitor_output.json vom GitHub Actions Workflow."
+          git commit -m "Update monitor_output.json" || echo "Keine Änderungen"
+          git push https://jonas17-11:${{ secrets.PAT_TOKEN }}@github.com/jonas17-11/Planspiel-Boerse-Aktien.git main
