@@ -34,8 +34,6 @@ jobs:
           git add monitor_output.json
           git commit -m "Update monitor_output.json"
           git push https://jonas17-11:${{ secrets.PAT_TOKEN }}@github.com/jonas17-11/Planspiel-Boerse-Aktien.git monitor-output-update
-        env:
-          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
 
       - name: Pull Request erstellen
         uses: peter-evans/create-pull-request@v5
