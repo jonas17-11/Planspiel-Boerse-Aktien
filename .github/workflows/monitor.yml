@@ -1,33 +1,39 @@
-name: Monitor Stocks
+name: Monitor
 
 on:
   schedule:
-    - cron: '0 * * * *'  # jede Stunde
-  workflow_dispatch:
+    - cron: "0 * * * *"   # ⏰ Läuft jede volle Stunde
+  workflow_dispatch:       # Manuelles Starten erlaubt
 
 jobs:
-  monitor:
+  run-monitor:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Repository auschecken
-        uses: actions/checkout@v3
+    - name: Repository auschecken
+      uses: actions/checkout@v4
 
-      - name: Python einrichten
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+    - name: Python einrichten
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
 
-      - name: Abhängigkeiten installieren
-        run: |
-          python -m pip install --upgrade pip
-          pip install yfinance pandas
+    - name: Abhängigkeiten installieren
+      run: |
+        python -m pip install --upgrade pip
+        pip install yfinance pandas numpy
 
-      - name: Monitor ausführen
-        run: python monitor.py
+    - name: Monitor Script ausführen
+      run: |
+        python monitor.py
 
-      - name: JSON-Datei als Artifact hochladen
-        uses: actions/upload-artifact@v4
-        with:
-          name: monitor-output
-          path: monitor_output.json
+    - name: Artifact-Ordner vorbereiten
+      run: |
+        mkdir -p artifacts
+        cp monitor_output.json artifacts/monitor_output.json
+
+    - name: Ergebnisse als Artifact hochladen
+      uses: actions/upload-artifact@v4
+      with:
+        name: monitor-output
+        path: artifacts
