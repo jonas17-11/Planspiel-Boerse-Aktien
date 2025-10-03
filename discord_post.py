@@ -15,7 +15,7 @@ openai.api_key = OPENAI_API_KEY
 r = requests.get(RAW_JSON_URL)
 data = r.json()["data"]
 
-# DataFrame für Verarbeitung
+# DataFrame erstellen
 df = pd.DataFrame(data)
 df['percent_change'] = pd.to_numeric(df['percent_change'])
 df['price'] = pd.to_numeric(df['price'])
@@ -34,7 +34,7 @@ msg += "\n**📉 Top 5 Verlierer der Stunde:**\n"
 for _, row in flop5.iterrows():
     msg += f"{row['ticker']}: {row['price']} USD ({row['percent_change']}%)\n"
 
-# Diagramm für Top 3 Gewinner erstellen
+# Diagramm für Top 3 Gewinner
 plt.figure(figsize=(6,4))
 top3 = df_sorted.head(3)
 plt.bar(top3['ticker'], top3['percent_change'], color='green')
@@ -45,7 +45,7 @@ chart_file = "top3_chart.png"
 plt.savefig(chart_file)
 plt.close()
 
-# KI-Fazit erstellen mit aktueller OpenAI API
+# KI-Fazit mit aktueller OpenAI 1.x API
 top_tickers = ', '.join(top10['ticker'].tolist())
 flop_tickers = ', '.join(flop5['ticker'].tolist())
 prompt = f"""
@@ -56,13 +56,13 @@ Verlierer: {flop_tickers}
 Bitte schreibe eine kurze Einschätzung (3-4 Sätze), welche Aktien interessant sein könnten basierend auf der Bewegung. Nur Hypothese, keine Finanzberatung.
 """
 
-response = openai.ChatCompletion.create(
+response = openai.chat.completions.create(
     model="gpt-3.5-turbo",
     messages=[
         {"role": "system", "content": "Du bist ein Börsen-Analyst."},
         {"role": "user", "content": prompt}
     ],
-    max_tokens=150
+    temperature=0.7
 )
 
 ki_fazit = response.choices[0].message.content.strip()
@@ -78,5 +78,5 @@ with open(chart_file, "rb") as f:
 embed = DiscordEmbed(title="💡 KI Einschätzung", description=ki_fazit, color=0x00ff00)
 webhook.add_embed(embed)
 
-# Nachricht senden
+# Nachricht posten
 webhook.execute()
