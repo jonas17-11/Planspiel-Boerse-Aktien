@@ -1,7 +1,7 @@
 import os, json, requests
-from discord import Webhook, RequestsWebhookAdapter
+from discord_webhook import DiscordWebhook
 
-# GitHub Secrets via Environment Variables
+# Secrets aus GitHub Actions
 WEBHOOK_URL = os.environ["DISCORD_WEBHOOK"]
 RAW_JSON_URL = os.environ["RAW_JSON_URL"]
 
@@ -21,5 +21,5 @@ msg += "\n\n**📉 Top 5 Verlierer der Stunde:**\n"
 msg += "\n".join([f"{d['ticker']}: {d['percent_change']}%" for d in flop5])
 
 # Nachricht senden
-webhook = Webhook.from_url(WEBHOOK_URL, adapter=RequestsWebhookAdapter())
-webhook.send(msg)
+webhook = DiscordWebhook(url=WEBHOOK_URL, content=msg)
+webhook.execute()
