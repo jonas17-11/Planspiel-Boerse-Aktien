@@ -2,9 +2,8 @@ name: Discord Stock Update
 
 on:
   schedule:
-    # Läuft jede Stunde und fünf Minuten
-    - cron: "5 * * * *"
-  workflow_dispatch: # Manuelles Starten möglich
+    - cron: "0 * * * *"  # Jede volle Stunde
+  workflow_dispatch:    # Optional: Manuell starten
 
 jobs:
   discord_post:
