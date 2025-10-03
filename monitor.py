@@ -1,54 +1,41 @@
 import yfinance as yf
+import pandas as pd
 import json
+from datetime import datetime
 
-# ANSI Farbcodes
-GREEN = "\033[32m"
-RED = "\033[31m"
-RESET = "\033[0m"
+# ---- Aktienliste aus tickers.txt einlesen ----
+tickers_file = "tickers.txt"
+with open(tickers_file, "r") as f:
+    tickers = [line.strip() for line in f if line.strip()]
 
-# Tickers aus Datei einlesen
-with open("tickers.txt", "r") as f:
-    tickers = [line.strip() for line in f.readlines()]
-
-results = []
-
-# Kurse abrufen und prozentuale Veränderung berechnen
+# ---- Kurse abrufen ----
+data = []
 for ticker in tickers:
     try:
-        data = yf.Ticker(ticker).history(period="1d", interval="5m")
-        if not data.empty and len(data) > 1:
-            last_price = data["Close"].iloc[-1]
-            prev_price = data["Close"].iloc[-2]
-            change = ((last_price - prev_price) / prev_price) * 100
-            results.append({
-                "ticker": ticker,
-                "last_price": round(last_price, 2),
-                "change_percent": round(change, 2)
-            })
+        stock = yf.Ticker(ticker)
+        hist = stock.history(period="1d", interval="1m")
+        if hist.empty:
+            continue
+        start_price = hist['Close'].iloc[0]
+        end_price = hist['Close'].iloc[-1]
+        change_percent = ((end_price - start_price) / start_price) * 100
+        data.append({"ticker": ticker, "change_percent": round(change_percent, 2)})
     except Exception as e:
         print(f"Fehler bei {ticker}: {e}")
 
-# Top 10 beste Aktien
-top10_best = sorted(results, key=lambda x: x["change_percent"], reverse=True)[:10]
+# ---- Top 10 / Bottom 5 ----
+df = pd.DataFrame(data)
+top10_list = df.nlargest(10, "change_percent").to_dict(orient="records")
+bottom5_list = df.nsmallest(5, "change_percent").to_dict(orient="records")
 
-# Top 5 schlechteste Aktien
-top5_worst = sorted(results, key=lambda x: x["change_percent"])[:5]
-
-# JSON speichern
-output = {
-    "top10_best": top10_best,
-    "top5_worst": top5_worst
+# ---- JSON speichern ----
+output_data = {
+    "top10": top10_list,
+    "bottom5": bottom5_list,
+    "timestamp": datetime.utcnow().isoformat() + "Z"
 }
+
 with open("monitor_output.json", "w") as f:
-    json.dump(output, f, indent=2)
+    json.dump(output_data, f, indent=2)
 
-# GitHub Actions Log Ausgabe mit Farben
-def print_table(title, data, color):
-    print(f"\n{color}=== {title} ==={RESET}")
-    print(f"{'Ticker':<10}{'Price':<10}{'Change (%)':<12}")
-    print("-" * 32)
-    for item in data:
-        print(f"{item['ticker']:<10}{item['last_price']:<10}{item['change_percent']:<12}")
-
-print_table("Top 10 Beste", top10_best, GREEN)
-print_table("Top 5 Schlechteste", top5_worst, RED)
+print("monitor_output.json erfolgreich aktualisiert!")
