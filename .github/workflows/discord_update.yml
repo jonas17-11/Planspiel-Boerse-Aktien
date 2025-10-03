@@ -2,7 +2,7 @@ name: Discord Update
 
 on:
   schedule:
-    - cron: '5 * * * *'  # jede Stunde 5 Minuten später
+    - cron: '0 * * * *'  # jede Stunde
   workflow_dispatch:  # manuell starten möglich
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
           python-version: '3.11'
 
       - name: Abhängigkeiten installieren
-        run: pip install discord.py requests
+        run: pip install discord-webhook requests
 
       - name: Discord Nachricht senden
         env:
