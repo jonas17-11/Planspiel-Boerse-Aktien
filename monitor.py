@@ -1,47 +1,114 @@
+#!/usr/bin/env python3
+# monitor.py
 import yfinance as yf
+import pandas as pd
 import json
 import time
-import pandas as pd
+from datetime import datetime
 
-# Ticker aus Datei laden
-with open("tickers.txt", "r") as f:
-    tickers = [line.strip() for line in f if line.strip()]
+TICKERS_FILE = "tickers.txt"
+OUTPUT_FILE = "monitor_output.json"
+BATCH_SIZE = 50          # Anzahl Ticker pro Batch (reduziert Anzahl Requests)
+INTERVAL = "5m"
+PERIOD = "1d"
 
-data_list = []
+def read_tickers():
+    with open(TICKERS_FILE, "r") as f:
+        return [line.strip() for line in f if line.strip() and not line.strip().startswith("#")]
 
-# Kurs und Veränderung abrufen
-for ticker in tickers:
+def process_batch(batch):
+    results = []
     try:
-        info = yf.Ticker(ticker).info
-        price = info.get("regularMarketPrice")
-        prev_close = info.get("regularMarketPreviousClose")
-        if price is not None and prev_close is not None:
-            change_pct = ((price - prev_close) / prev_close) * 100
-            data_list.append({
-                "ticker": ticker,
-                "price": round(price, 2),
-                "change_pct": round(change_pct, 2)
-            })
-        time.sleep(0.5)  # Rate-Limit Schutz
+        # Batch-Download (effizienter als Einzel-Requests)
+        df = yf.download(tickers=" ".join(batch), period=PERIOD, interval=INTERVAL,
+                         group_by="ticker", threads=True, progress=False)
     except Exception as e:
-        print(f"Fehler bei {ticker}: {e}")
+        print("Batch-download fehlgeschlagen:", e)
+        return results
 
-# DataFrame erstellen für Sortierung
-df = pd.DataFrame(data_list)
+    for ticker in batch:
+        try:
+            # Unterschiedliche Rückgabe-Formate abfangen
+            ticker_df = None
+            if isinstance(df.columns, pd.MultiIndex):
+                # Gruppiert nach ticker: df.xs works
+                try:
+                    ticker_df = df.xs(ticker, axis=1, level=1)
+                except Exception:
+                    # alternativ: viele Versionen von yfinance unterschieden
+                    if ticker in df.columns:
+                        ticker_df = df[ticker]
+            else:
+                if ticker in df.columns:
+                    ticker_df = df[ticker]
 
-# Top 10 nach Performance
-top_10 = df.sort_values(by="change_pct", ascending=False).head(10)
+            # Manche Rückgaben liefern nur eine Serie / DataFrame mit numeric columns
+            if ticker_df is None:
+                continue
 
-# Bottom 5 nach Performance
-bottom_5 = df.sort_values(by="change_pct", ascending=True).head(5)
+            # Wähle 'Close' oder 'Adj Close' oder erste numerische Spalte
+            if isinstance(ticker_df, pd.DataFrame):
+                if "Close" in ticker_df.columns:
+                    series = ticker_df["Close"].dropna()
+                elif "Adj Close" in ticker_df.columns:
+                    series = ticker_df["Adj Close"].dropna()
+                else:
+                    # fallback: erste numerische Spalte
+                    numeric_cols = [c for c in ticker_df.columns if pd.api.types.is_numeric_dtype(ticker_df[c])]
+                    if numeric_cols:
+                        series = ticker_df[numeric_cols[0]].dropna()
+                    else:
+                        continue
+            else:
+                # Serie
+                series = ticker_df.dropna()
 
-# Ergebnis flach zusammenführen für Numerics
-result = {}
-for _, row in pd.concat([top_10, bottom_5]).iterrows():
-    result[row["ticker"]] = row["price"]
+            if len(series) < 2:
+                continue
+            last = float(series.iloc[-1])
+            prev = float(series.iloc[-2])
+            if prev == 0:
+                continue
+            pct = ((last - prev) / prev) * 100.0
+            results.append({
+                "ticker": ticker,
+                "price": round(last, 2),
+                "percent_change": round(pct, 2)
+            })
+        except Exception as e:
+            print(f"Fehler bei {ticker}: {e}")
+            continue
 
-# JSON speichern
-with open("monitor_output.json", "w") as f:
-    json.dump(result, f, indent=2)
+    return results
 
-print("monitor_output.json (flach für Numerics) wurde erfolgreich erstellt!")
+def main():
+    tickers = read_tickers()
+    all_results = []
+
+    for i in range(0, len(tickers), BATCH_SIZE):
+        batch = tickers[i:i + BATCH_SIZE]
+        print(f"Verarbeite Batch {i}..{i+len(batch)} ({len(batch)} Ticker)")
+        res = process_batch(batch)
+        all_results.extend(res)
+        time.sleep(1)  # kurze Pause zwischen Batches
+
+    if not all_results:
+        print("Keine Daten abgerufen.")
+        return
+
+    # Sortiere nach Prozentänderung (desc)
+    df = pd.DataFrame(all_results)
+    df = df.sort_values("percent_change", ascending=False)
+
+    out = {
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "data": df.to_dict(orient="records")
+    }
+
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        json.dump(out, f, indent=2, ensure_ascii=False)
+
+    print(f"{OUTPUT_FILE} geschrieben mit {len(out['data'])} Einträgen.")
+
+if __name__ == "__main__":
+    main()
