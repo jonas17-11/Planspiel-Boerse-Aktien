@@ -5,7 +5,7 @@ from discord_webhook import DiscordWebhook, DiscordEmbed
 
 # Hugging Face
 HF_API_KEY = os.environ["HF_API_KEY"]
-HF_MODEL = "EleutherAI/gpt-neo-1.3B"  # kostenlos nutzbares Modell
+HF_MODEL = "EleutherAI/gpt-neo-1.3B"
 
 # Discord & GitHub
 WEBHOOK_URL = os.environ["DISCORD_WEBHOOK"]
@@ -15,7 +15,7 @@ RAW_JSON_URL = os.environ["RAW_JSON_URL"]
 r = requests.get(RAW_JSON_URL)
 data = r.json()["data"]
 
-# DataFrame erstellen
+# DataFrame
 df = pd.DataFrame(data)
 df['percent_change'] = pd.to_numeric(df['percent_change'])
 df['price'] = pd.to_numeric(df['price'])
@@ -29,11 +29,12 @@ flop5 = df_sorted.tail(5)
 msg = "**📈 Top 10 Gewinner der Stunde:**\n"
 for _, row in top10.iterrows():
     msg += f"{row['ticker']}: {row['price']} USD ({row['percent_change']}%)\n"
+
 msg += "\n**📉 Top 5 Verlierer der Stunde:**\n"
 for _, row in flop5.iterrows():
     msg += f"{row['ticker']}: {row['price']} USD ({row['percent_change']}%)\n"
 
-# Kombiniertes Diagramm Top3 Gewinner + Flop5 Verlierer
+# Diagramm
 fig, ax = plt.subplots(figsize=(10,5))
 top3 = df_sorted.head(3)
 ax.bar(top3['ticker'], top3['percent_change'], color='green', label='Top 3 Gewinner')
@@ -54,25 +55,33 @@ with open(chart_file, "rb") as f:
 # KI-Fazit via Hugging Face
 try:
     prompt = f"""
-Hier sind die Top 10 Gewinner und Top 5 Verlierer der letzten Stunde im Börsenplanspiel:
+Hier sind die Top 10 Gewinner und Top 5 Verlierer der letzten Stunde:
 Gewinner: {', '.join(top10['ticker'].tolist())}
 Verlierer: {', '.join(flop5['ticker'].tolist())}
 
-Bitte schreibe eine kurze Einschätzung (3-4 Sätze), welche Aktien interessant sein könnten basierend auf der Bewegung. Nur Hypothese, keine Finanzberatung.
+Schreibe eine kurze Einschätzung (3-4 Sätze), welche Aktien interessant sein könnten. Nur Hypothese, keine Finanzberatung.
 """
-
     headers = {"Authorization": f"Bearer {HF_API_KEY}"}
-    hf_resp = requests.post(
+    response = requests.post(
         f"https://api-inference.huggingface.co/models/{HF_MODEL}",
         headers=headers,
         json={"inputs": prompt, "parameters": {"max_new_tokens": 150}}
     )
-    ki_fazit = hf_resp.json()[0]['generated_text'].strip()
+
+    # Sicherstellen, dass wir Text aus der Antwort extrahieren
+    hf_json = response.json()
+    if isinstance(hf_json, list) and 'generated_text' in hf_json[0]:
+        ki_fazit = hf_json[0]['generated_text'].strip()
+    else:
+        ki_fazit = "⚠️ KI-Fazit konnte nicht erstellt werden."
+
     embed = DiscordEmbed(title="💡 KI Einschätzung", description=ki_fazit, color=0x00ff00)
     webhook.add_embed(embed)
 
 except Exception as e:
     print(f"⚠️ KI-Fazit konnte nicht erstellt werden: {e}")
+    embed = DiscordEmbed(title="💡 KI Einschätzung", description="⚠️ KI-Fazit konnte nicht erstellt werden.", color=0xff0000)
+    webhook.add_embed(embed)
 
-# Discord senden
+# Nachricht senden
 webhook.execute()
