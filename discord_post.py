@@ -2,14 +2,14 @@ import os, json, requests
 import pandas as pd
 import matplotlib.pyplot as plt
 from discord_webhook import DiscordWebhook, DiscordEmbed
-import openai
 
-# Secrets aus GitHub Actions
+# Hugging Face
+HF_API_KEY = os.environ["HF_API_KEY"]
+HF_MODEL = "EleutherAI/gpt-neo-1.3B"  # kostenlos nutzbares Modell
+
+# Discord & GitHub
 WEBHOOK_URL = os.environ["DISCORD_WEBHOOK"]
 RAW_JSON_URL = os.environ["RAW_JSON_URL"]
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-
-openai.api_key = OPENAI_API_KEY
 
 # JSON von GitHub laden
 r = requests.get(RAW_JSON_URL)
@@ -20,7 +20,7 @@ df = pd.DataFrame(data)
 df['percent_change'] = pd.to_numeric(df['percent_change'])
 df['price'] = pd.to_numeric(df['price'])
 
-# Top 10 Gewinner & Flop 5 Verlierer
+# Top/Flop
 df_sorted = df.sort_values(by='percent_change', ascending=False)
 top10 = df_sorted.head(10)
 flop5 = df_sorted.tail(5)
@@ -29,21 +29,15 @@ flop5 = df_sorted.tail(5)
 msg = "**📈 Top 10 Gewinner der Stunde:**\n"
 for _, row in top10.iterrows():
     msg += f"{row['ticker']}: {row['price']} USD ({row['percent_change']}%)\n"
-
 msg += "\n**📉 Top 5 Verlierer der Stunde:**\n"
 for _, row in flop5.iterrows():
     msg += f"{row['ticker']}: {row['price']} USD ({row['percent_change']}%)\n"
 
-# Kombiniertes Diagramm Top 3 Gewinner + Flop 5 Verlierer
+# Kombiniertes Diagramm Top3 Gewinner + Flop5 Verlierer
 fig, ax = plt.subplots(figsize=(10,5))
-
-# Balken für Gewinner
 top3 = df_sorted.head(3)
 ax.bar(top3['ticker'], top3['percent_change'], color='green', label='Top 3 Gewinner')
-
-# Balken für Verlierer
 ax.bar(flop5['ticker'], flop5['percent_change'], color='red', label='Flop 5 Verlierer')
-
 ax.set_ylabel('Prozentuale Veränderung (%)')
 ax.set_title('Top 3 Gewinner vs Flop 5 Verlierer der Stunde')
 ax.legend()
@@ -52,38 +46,33 @@ chart_file = "combined_chart.png"
 plt.savefig(chart_file)
 plt.close()
 
-# Discord Nachricht vorbereiten
+# Discord vorbereiten
 webhook = DiscordWebhook(url=WEBHOOK_URL, content=msg)
-
-# Chart anhängen
 with open(chart_file, "rb") as f:
     webhook.add_file(file=f.read(), filename="combined_chart.png")
 
-# KI-Fazit optional, robust gegen Quota-Limit
+# KI-Fazit via Hugging Face
 try:
-    top_tickers = ', '.join(top10['ticker'].tolist())
-    flop_tickers = ', '.join(flop5['ticker'].tolist())
     prompt = f"""
 Hier sind die Top 10 Gewinner und Top 5 Verlierer der letzten Stunde im Börsenplanspiel:
-Gewinner: {top_tickers}
-Verlierer: {flop_tickers}
+Gewinner: {', '.join(top10['ticker'].tolist())}
+Verlierer: {', '.join(flop5['ticker'].tolist())}
 
 Bitte schreibe eine kurze Einschätzung (3-4 Sätze), welche Aktien interessant sein könnten basierend auf der Bewegung. Nur Hypothese, keine Finanzberatung.
 """
-    response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "Du bist ein Börsen-Analyst."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.7
+
+    headers = {"Authorization": f"Bearer {HF_API_KEY}"}
+    hf_resp = requests.post(
+        f"https://api-inference.huggingface.co/models/{HF_MODEL}",
+        headers=headers,
+        json={"inputs": prompt, "parameters": {"max_new_tokens": 150}}
     )
-    ki_fazit = response.choices[0].message.content.strip()
+    ki_fazit = hf_resp.json()[0]['generated_text'].strip()
     embed = DiscordEmbed(title="💡 KI Einschätzung", description=ki_fazit, color=0x00ff00)
     webhook.add_embed(embed)
 
 except Exception as e:
     print(f"⚠️ KI-Fazit konnte nicht erstellt werden: {e}")
 
-# Nachricht posten
+# Discord senden
 webhook.execute()
