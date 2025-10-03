@@ -15,16 +15,17 @@ openai.api_key = OPENAI_API_KEY
 r = requests.get(RAW_JSON_URL)
 data = r.json()["data"]
 
-# DataFrame für einfache Verarbeitung
+# DataFrame für Verarbeitung
 df = pd.DataFrame(data)
 df['percent_change'] = pd.to_numeric(df['percent_change'])
+df['price'] = pd.to_numeric(df['price'])
 
 # Top 10 Gewinner & Flop 5 Verlierer
 df_sorted = df.sort_values(by='percent_change', ascending=False)
 top10 = df_sorted.head(10)
 flop5 = df_sorted.tail(5)
 
-# Nachricht formatieren (Ticker, Preis, Veränderung)
+# Nachricht formatieren
 msg = "**📈 Top 10 Gewinner der Stunde:**\n"
 for _, row in top10.iterrows():
     msg += f"{row['ticker']}: {row['price']} USD ({row['percent_change']}%)\n"
@@ -33,7 +34,7 @@ msg += "\n**📉 Top 5 Verlierer der Stunde:**\n"
 for _, row in flop5.iterrows():
     msg += f"{row['ticker']}: {row['price']} USD ({row['percent_change']}%)\n"
 
-# Diagramme für Top 3 Gewinner
+# Diagramm für Top 3 Gewinner erstellen
 plt.figure(figsize=(6,4))
 top3 = df_sorted.head(3)
 plt.bar(top3['ticker'], top3['percent_change'], color='green')
@@ -44,7 +45,7 @@ chart_file = "top3_chart.png"
 plt.savefig(chart_file)
 plt.close()
 
-# KI Fazit generieren
+# KI-Fazit erstellen mit aktueller OpenAI API
 top_tickers = ', '.join(top10['ticker'].tolist())
 flop_tickers = ', '.join(flop5['ticker'].tolist())
 prompt = f"""
@@ -52,19 +53,24 @@ Hier sind die Top 10 Gewinner und Top 5 Verlierer der letzten Stunde im Börsenp
 Gewinner: {top_tickers}
 Verlierer: {flop_tickers}
 
-Bitte schreibe eine kurze Einschätzung (3-4 Sätze) welche Aktien interessant sein könnten, basierend auf der Bewegung, nur Hypothese, keine Finanzberatung.
+Bitte schreibe eine kurze Einschätzung (3-4 Sätze), welche Aktien interessant sein könnten basierend auf der Bewegung. Nur Hypothese, keine Finanzberatung.
 """
 
-response = openai.Completion.create(
-    engine="text-davinci-003",
-    prompt=prompt,
+response = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    messages=[
+        {"role": "system", "content": "Du bist ein Börsen-Analyst."},
+        {"role": "user", "content": prompt}
+    ],
     max_tokens=150
 )
-ki_fazit = response.choices[0].text.strip()
+
+ki_fazit = response.choices[0].message.content.strip()
 
 # Discord Nachricht senden
 webhook = DiscordWebhook(url=WEBHOOK_URL, content=msg)
-# Bild hinzufügen
+
+# Chart anhängen
 with open(chart_file, "rb") as f:
     webhook.add_file(file=f.read(), filename="top3_chart.png")
 
@@ -72,4 +78,5 @@ with open(chart_file, "rb") as f:
 embed = DiscordEmbed(title="💡 KI Einschätzung", description=ki_fazit, color=0x00ff00)
 webhook.add_embed(embed)
 
+# Nachricht senden
 webhook.execute()
