@@ -1,1 +1,67 @@
-
+{
+  "top10": [
+    {
+      "ticker": "INTC",
+      "change_percent": 4.29
+    },
+    {
+      "ticker": "VEEV",
+      "change_percent": 3.19
+    },
+    {
+      "ticker": "IDXX",
+      "change_percent": 2.73
+    },
+    {
+      "ticker": "SBUX",
+      "change_percent": 2.7
+    },
+    {
+      "ticker": "FAST",
+      "change_percent": 2.52
+    },
+    {
+      "ticker": "PYPL",
+      "change_percent": 2.51
+    },
+    {
+      "ticker": "MSCI",
+      "change_percent": 2.48
+    },
+    {
+      "ticker": "COO",
+      "change_percent": 2.42
+    },
+    {
+      "ticker": "ISRG",
+      "change_percent": 2.29
+    },
+    {
+      "ticker": "ADBE",
+      "change_percent": 2.27
+    }
+  ],
+  "bottom5": [
+    {
+      "ticker": "TSLA",
+      "change_percent": -7.0
+    },
+    {
+      "ticker": "ILMN",
+      "change_percent": -3.1
+    },
+    {
+      "ticker": "C",
+      "change_percent": -1.93
+    },
+    {
+      "ticker": "ABBV",
+      "change_percent": -1.87
+    },
+    {
+      "ticker": "GBX",
+      "change_percent": -1.32
+    }
+  ],
+  "timestamp": "2025-10-03T08:52:17.198543Z"
+}
