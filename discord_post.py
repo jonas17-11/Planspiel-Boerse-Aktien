@@ -45,38 +45,37 @@ chart_file = "top3_chart.png"
 plt.savefig(chart_file)
 plt.close()
 
-# KI-Fazit mit aktueller OpenAI 1.x API
-top_tickers = ', '.join(top10['ticker'].tolist())
-flop_tickers = ', '.join(flop5['ticker'].tolist())
-prompt = f"""
-Hier sind die Top 10 Gewinner und Top 5 Verlierer der letzten Stunde im Börsenplanspiel:
-Gewinner: {top_tickers}
-Verlierer: {flop_tickers}
-
-Bitte schreibe eine kurze Einschätzung (3-4 Sätze), welche Aktien interessant sein könnten basierend auf der Bewegung. Nur Hypothese, keine Finanzberatung.
-"""
-
-response = openai.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=[
-        {"role": "system", "content": "Du bist ein Börsen-Analyst."},
-        {"role": "user", "content": prompt}
-    ],
-    temperature=0.7
-)
-
-ki_fazit = response.choices[0].message.content.strip()
-
-# Discord Nachricht senden
+# Discord Nachricht vorbereiten
 webhook = DiscordWebhook(url=WEBHOOK_URL, content=msg)
 
 # Chart anhängen
 with open(chart_file, "rb") as f:
     webhook.add_file(file=f.read(), filename="top3_chart.png")
 
-# KI-Fazit als Embed
-embed = DiscordEmbed(title="💡 KI Einschätzung", description=ki_fazit, color=0x00ff00)
-webhook.add_embed(embed)
+# KI-Fazit optional
+try:
+    top_tickers = ', '.join(top10['ticker'].tolist())
+    flop_tickers = ', '.join(flop5['ticker'].tolist())
+    prompt = f"""
+Hier sind die Top 10 Gewinner und Top 5 Verlierer der letzten Stunde im Börsenplanspiel:
+Gewinner: {top_tickers}
+Verlierer: {flop_tickers}
+
+Bitte schreibe eine kurze Einschätzung (3-4 Sätze), welche Aktien interessant sein könnten basierend auf der Bewegung. Nur Hypothese, keine Finanzberatung.
+"""
+    response = openai.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "Du bist ein Börsen-Analyst."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7
+    )
+    ki_fazit = response.choices[0].message.content.strip()
+    embed = DiscordEmbed(title="💡 KI Einschätzung", description=ki_fazit, color=0x00ff00)
+    webhook.add_embed(embed)
+except openai.error.OpenAIError as e:
+    print(f"⚠️ KI-Fazit konnte nicht erstellt werden: {e}")
 
 # Nachricht posten
 webhook.execute()
