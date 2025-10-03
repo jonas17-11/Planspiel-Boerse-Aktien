@@ -1,1 +1,6 @@
-
+git add discord_post.py .github/workflows/discord_update.yml
+git status
+git commit -m "Add Discord webhook script and GitHub Actions workflow"
+git push origin main
+git pull origin main --rebase
+git push origin main
