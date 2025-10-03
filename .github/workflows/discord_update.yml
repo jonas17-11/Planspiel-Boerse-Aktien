@@ -3,7 +3,7 @@ name: Discord Update
 on:
   schedule:
     - cron: '0 * * * *'  # jede Stunde
-  workflow_dispatch:  # manuell starten möglich
+  workflow_dispatch:
 
 jobs:
   discord_post:
@@ -18,10 +18,11 @@ jobs:
           python-version: '3.11'
 
       - name: Abhängigkeiten installieren
-        run: pip install discord-webhook requests
+        run: pip install discord-webhook requests pandas matplotlib openai
 
       - name: Discord Nachricht senden
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           RAW_JSON_URL: ${{ secrets.RAW_JSON_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python discord_post.py
