@@ -3,7 +3,7 @@ name: 📈 Monitor Stocks
 on:
   schedule:
     - cron: "0 * * * *"  # jede volle Stunde
-  workflow_dispatch:    # manuelles Auslösen möglich
+  workflow_dispatch:
 
 jobs:
   monitor:
@@ -26,17 +26,10 @@ jobs:
       - name: 📊 Run Monitor Script
         run: python monitor.py
 
-      - name: 💾 Commit monitor_output.json via Pull Request
-        uses: peter-evans/create-pull-request@v5
-        with:
-          commit-message: Update monitor_output.json [skip ci]
-          branch: monitor-output-update
-          title: Update monitor_output.json
-          body: Automatisch aktualisierte Aktien-Daten
-          labels: automated
-
-      - name: 🤖 Post to Discord
-        run: python discord_post.py
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      - name: 💾 Commit monitor_output.json (mit PAT)
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add monitor_output.json
+          git commit -m "Update monitor_output.json [skip ci]" || echo "Keine Änderungen"
+          git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }} HEAD:main
