@@ -1,87 +1,93 @@
-import os, json, requests
-import pandas as pd
+import os
+import json
 import matplotlib.pyplot as plt
-from discord_webhook import DiscordWebhook, DiscordEmbed
+import pandas as pd
+import requests
+from discord import SyncWebhook
+from datetime import datetime
+import io
 
-# Hugging Face
-HF_API_KEY = os.environ["HF_API_KEY"]
-HF_MODEL = "EleutherAI/gpt-neo-1.3B"
+# 📌 Hole Secrets
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-# Discord & GitHub
-WEBHOOK_URL = os.environ["DISCORD_WEBHOOK"]
-RAW_JSON_URL = os.environ["RAW_JSON_URL"]
+# 📈 Lade Aktien-Daten (z.B. aus monitor_output.json)
+with open("monitor_output.json", "r", encoding="utf-8") as f:
+    stock_data = json.load(f)
 
-# JSON von GitHub laden
-r = requests.get(RAW_JSON_URL)
-data = r.json()["data"]
+df = pd.DataFrame(stock_data)
+df["change_percent"] = ((df["price"] - df["previous_close"]) / df["previous_close"]) * 100
 
-# DataFrame
-df = pd.DataFrame(data)
-df['percent_change'] = pd.to_numeric(df['percent_change'])
-df['price'] = pd.to_numeric(df['price'])
+# Sortiere für Top & Flop
+top_stocks = df.sort_values("change_percent", ascending=False).head(5)
+worst_stocks = df.sort_values("change_percent", ascending=True).head(5)
 
-# Top/Flop
-df_sorted = df.sort_values(by='percent_change', ascending=False)
-top10 = df_sorted.head(10)
-flop5 = df_sorted.tail(5)
-
-# Nachricht formatieren
-msg = "**📈 Top 10 Gewinner der Stunde:**\n"
-for _, row in top10.iterrows():
-    msg += f"{row['ticker']}: {row['price']} USD ({row['percent_change']}%)\n"
-
-msg += "\n**📉 Top 5 Verlierer der Stunde:**\n"
-for _, row in flop5.iterrows():
-    msg += f"{row['ticker']}: {row['price']} USD ({row['percent_change']}%)\n"
-
-# Diagramm
-fig, ax = plt.subplots(figsize=(10,5))
-top3 = df_sorted.head(3)
-ax.bar(top3['ticker'], top3['percent_change'], color='green', label='Top 3 Gewinner')
-ax.bar(flop5['ticker'], flop5['percent_change'], color='red', label='Flop 5 Verlierer')
-ax.set_ylabel('Prozentuale Veränderung (%)')
-ax.set_title('Top 3 Gewinner vs Flop 5 Verlierer der Stunde')
-ax.legend()
+# 📊 Diagramm erzeugen (Top 5)
+plt.figure(figsize=(10, 5))
+plt.bar(top_stocks["ticker"], top_stocks["change_percent"], color="green")
+plt.title("Top 5 Aktien - Veränderung (%)")
+plt.xlabel("Ticker")
+plt.ylabel("% Veränderung")
 plt.tight_layout()
-chart_file = "combined_chart.png"
-plt.savefig(chart_file)
+
+# In Speicher speichern
+buf = io.BytesIO()
+plt.savefig(buf, format="png")
+buf.seek(0)
 plt.close()
 
-# Discord vorbereiten
-webhook = DiscordWebhook(url=WEBHOOK_URL, content=msg)
-with open(chart_file, "rb") as f:
-    webhook.add_file(file=f.read(), filename="combined_chart.png")
+# Diagramm-Datei erstellen
+chart_file_path = "top_stocks_chart.png"
+with open(chart_file_path, "wb") as img_file:
+    img_file.write(buf.getbuffer())
 
-# KI-Fazit via Hugging Face
-try:
-    prompt = f"""
-Hier sind die Top 10 Gewinner und Top 5 Verlierer der letzten Stunde:
-Gewinner: {', '.join(top10['ticker'].tolist())}
-Verlierer: {', '.join(flop5['ticker'].tolist())}
+# 📄 Tabelle in Textform
+table_text = df.to_string(index=False, formatters={"change_percent": "{:.2f}%".format})
 
-Schreibe eine kurze Einschätzung (3-4 Sätze), welche Aktien interessant sein könnten. Nur Hypothese, keine Finanzberatung.
+# 🧠 Anfrage an OpenRouter (Mistral 7B Instruct)
+prompt_text = f"""
+Analysiere folgende Aktienkursveränderungen und gib eine kurze Einschätzung,
+welche Aktien derzeit interessant für Investitionen sein könnten (hypothetisch, keine Finanzberatung).
+
+Daten:
+{table_text}
+
+Gib am Ende eine klare Empfehlungsliste mit Top Chancen und Risiken.
 """
-    headers = {"Authorization": f"Bearer {HF_API_KEY}"}
-    response = requests.post(
-        f"https://api-inference.huggingface.co/models/{HF_MODEL}",
-        headers=headers,
-        json={"inputs": prompt, "parameters": {"max_new_tokens": 150}}
-    )
 
-    # Sicherstellen, dass wir Text aus der Antwort extrahieren
-    hf_json = response.json()
-    if isinstance(hf_json, list) and 'generated_text' in hf_json[0]:
-        ki_fazit = hf_json[0]['generated_text'].strip()
-    else:
-        ki_fazit = "⚠️ KI-Fazit konnte nicht erstellt werden."
+headers = {
+    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+    "Content-Type": "application/json",
+    "HTTP-Referer": "https://github.com",  # optional
+    "X-Title": "Stock Analysis Bot"
+}
 
-    embed = DiscordEmbed(title="💡 KI Einschätzung", description=ki_fazit, color=0x00ff00)
-    webhook.add_embed(embed)
+payload = {
+    "model": "mistralai/mistral-7b-instruct",
+    "messages": [
+        {"role": "system", "content": "Du bist ein Finanzanalyse-Assistent. Gib klare, strukturierte Einschätzungen ab."},
+        {"role": "user", "content": prompt_text}
+    ],
+    "temperature": 0.7
+}
 
-except Exception as e:
-    print(f"⚠️ KI-Fazit konnte nicht erstellt werden: {e}")
-    embed = DiscordEmbed(title="💡 KI Einschätzung", description="⚠️ KI-Fazit konnte nicht erstellt werden.", color=0xff0000)
-    webhook.add_embed(embed)
+response = requests.post(
+    "https://openrouter.ai/api/v1/chat/completions",
+    headers=headers,
+    json=payload
+)
 
-# Nachricht senden
-webhook.execute()
+if response.status_code != 200:
+    ai_text = f"❌ KI konnte keine Antwort generieren. ({response.status_code})\n{response.text}"
+else:
+    ai_text = response.json()["choices"][0]["message"]["content"]
+
+# 📬 An Discord schicken
+webhook = SyncWebhook.from_url(DISCORD_WEBHOOK_URL)
+
+# Tabelle und KI Fazit
+webhook.send(f"📊 **Aktienübersicht - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}**\n```\n{table_text}\n```\n🤖 **KI Fazit:**\n{ai_text}")
+
+# Bild separat anhängen
+with open(chart_file_path, "rb") as f:
+    webhook.send(file=f)
