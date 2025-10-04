@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-10-04T04:36:38.594278Z",
+  "timestamp": "2025-10-04T05:32:38.137539Z",
   "data": [
     {
       "ticker": "SWK",
@@ -262,8 +262,8 @@
       "percent_change": 0.01
     },
     {
-      "ticker": "AGG",
-      "price": 100.18,
+      "ticker": "TIP",
+      "price": 111.07,
       "percent_change": 0.01
     },
     {
@@ -277,9 +277,9 @@
       "percent_change": 0.01
     },
     {
-      "ticker": "TIP",
-      "price": 111.07,
-      "percent_change": 0.01
+      "ticker": "AGG",
+      "price": 100.18,
+      "percent_change": 0.0
     },
     {
       "ticker": "SHY",
@@ -307,13 +307,13 @@
       "percent_change": 0.0
     },
     {
-      "ticker": "BND",
-      "price": 74.3,
+      "ticker": "AME",
+      "price": 183.73,
       "percent_change": -0.01
     },
     {
-      "ticker": "AME",
-      "price": 183.73,
+      "ticker": "COO",
+      "price": 70.45,
       "percent_change": -0.01
     },
     {
@@ -322,8 +322,8 @@
       "percent_change": -0.01
     },
     {
-      "ticker": "VEA",
-      "price": 61.06,
+      "ticker": "BND",
+      "price": 74.3,
       "percent_change": -0.01
     },
     {
@@ -332,9 +332,9 @@
       "percent_change": -0.01
     },
     {
-      "ticker": "COO",
-      "price": 70.45,
-      "percent_change": -0.01
+      "ticker": "AMD",
+      "price": 164.64,
+      "percent_change": -0.02
     },
     {
       "ticker": "BAC",
@@ -352,8 +352,8 @@
       "percent_change": -0.02
     },
     {
-      "ticker": "AMD",
-      "price": 164.64,
+      "ticker": "VEA",
+      "price": 61.06,
       "percent_change": -0.02
     },
     {
@@ -457,8 +457,8 @@
       "percent_change": -0.04
     },
     {
-      "ticker": "EWY",
-      "price": 83.86,
+      "ticker": "ISRG",
+      "price": 452.33,
       "percent_change": -0.05
     },
     {
@@ -472,8 +472,8 @@
       "percent_change": -0.05
     },
     {
-      "ticker": "ISRG",
-      "price": 452.33,
+      "ticker": "ABBV",
+      "price": 233.87,
       "percent_change": -0.05
     },
     {
@@ -482,18 +482,18 @@
       "percent_change": -0.05
     },
     {
-      "ticker": "ABBV",
-      "price": 233.87,
-      "percent_change": -0.05
-    },
-    {
-      "ticker": "MTZ",
-      "price": 215.98,
+      "ticker": "EWY",
+      "price": 83.86,
       "percent_change": -0.06
     },
     {
-      "ticker": "VHT",
-      "price": 269.57,
+      "ticker": "IYR",
+      "price": 97.04,
+      "percent_change": -0.06
+    },
+    {
+      "ticker": "ALL",
+      "price": 210.85,
       "percent_change": -0.06
     },
     {
@@ -507,18 +507,18 @@
       "percent_change": -0.06
     },
     {
-      "ticker": "XOM",
-      "price": 113.25,
+      "ticker": "MTZ",
+      "price": 215.98,
       "percent_change": -0.06
     },
     {
-      "ticker": "ALL",
-      "price": 210.85,
+      "ticker": "VNQ",
+      "price": 91.44,
       "percent_change": -0.06
     },
     {
-      "ticker": "IYR",
-      "price": 97.04,
+      "ticker": "VHT",
+      "price": 269.57,
       "percent_change": -0.06
     },
     {
@@ -527,9 +527,9 @@
       "percent_change": -0.06
     },
     {
-      "ticker": "EWC",
-      "price": 51.22,
-      "percent_change": -0.07
+      "ticker": "XOM",
+      "price": 113.25,
+      "percent_change": -0.06
     },
     {
       "ticker": "EEM",
@@ -537,8 +537,8 @@
       "percent_change": -0.07
     },
     {
-      "ticker": "VNQ",
-      "price": 91.43,
+      "ticker": "EWC",
+      "price": 51.22,
       "percent_change": -0.07
     },
     {
@@ -582,8 +582,8 @@
       "percent_change": -0.08
     },
     {
-      "ticker": "BDX",
-      "price": 193.57,
+      "ticker": "IYW",
+      "price": 197.44,
       "percent_change": -0.08
     },
     {
@@ -592,8 +592,8 @@
       "percent_change": -0.08
     },
     {
-      "ticker": "AIG",
-      "price": 81.04,
+      "ticker": "BDX",
+      "price": 193.57,
       "percent_change": -0.08
     },
     {
@@ -602,9 +602,9 @@
       "percent_change": -0.08
     },
     {
-      "ticker": "WFC",
-      "price": 80.68,
-      "percent_change": -0.09
+      "ticker": "AIG",
+      "price": 81.04,
+      "percent_change": -0.08
     },
     {
       "ticker": "ROK",
@@ -632,8 +632,18 @@
       "percent_change": -0.09
     },
     {
+      "ticker": "CP",
+      "price": 77.6,
+      "percent_change": -0.09
+    },
+    {
       "ticker": "XYL",
       "price": 149.86,
+      "percent_change": -0.09
+    },
+    {
+      "ticker": "WFC",
+      "price": 80.68,
       "percent_change": -0.09
     },
     {
@@ -642,23 +652,13 @@
       "percent_change": -0.09
     },
     {
-      "ticker": "CP",
-      "price": 77.6,
-      "percent_change": -0.09
+      "ticker": "GS",
+      "price": 790.0,
+      "percent_change": -0.1
     },
     {
       "ticker": "FAST",
       "price": 47.9,
-      "percent_change": -0.1
-    },
-    {
-      "ticker": "IYW",
-      "price": 197.4,
-      "percent_change": -0.1
-    },
-    {
-      "ticker": "GS",
-      "price": 790.0,
       "percent_change": -0.1
     },
     {
