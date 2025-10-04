@@ -13,7 +13,7 @@ jobs:
       - name: 📥 Checkout Repository mit PAT
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.PAT_TOKEN }}  # ✅ hier wird der PAT benutzt
+          token: ${{ secrets.PAT_TOKEN }}  # ✅ PAT für Push
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v4
@@ -34,10 +34,10 @@ jobs:
           git config user.email "github-actions@github.com"
           git add monitor_output.json
           git commit -m "Update monitor_output.json [skip ci]" || echo "Keine Änderungen"
-          git push origin HEAD:main  # ✅ Push funktioniert jetzt, da checkout mit PAT
+          git push origin HEAD:main
 
       - name: 🤖 Post to Discord
         run: python discord_post.py
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
