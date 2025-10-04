@@ -26,18 +26,14 @@ jobs:
       - name: 📊 Run Monitor Script
         run: python monitor.py
 
-      - name: 💾 Commit monitor_output.json (fehlerresistent)
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git stash || true
-          git pull --rebase
-          git stash pop || true
-          git add monitor_output.json
-          git commit -m "Update monitor_output.json [skip ci]" || echo "Keine Änderungen"
-          git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 💾 Commit monitor_output.json via Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          commit-message: Update monitor_output.json [skip ci]
+          branch: monitor-output-update
+          title: Update monitor_output.json
+          body: Automatisch aktualisierte Aktien-Daten
+          labels: automated
 
       - name: 🤖 Post to Discord
         run: python discord_post.py
