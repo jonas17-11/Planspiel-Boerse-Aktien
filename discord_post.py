@@ -1,30 +1,32 @@
 import os
 import json
 import pandas as pd
-from discord import SyncWebhook
 import matplotlib.pyplot as plt
+from discord import SyncWebhook, File
 from openai import OpenAI
 
-# 🔹 Lade Daten
+# 🔹 Daten laden
 with open("monitor_output.json", "r") as f:
     data = json.load(f)
 
-# Beispiel: erstelle Tabelle der Top 10 und Bottom 5
 df = pd.DataFrame(data)
+
+# 🔹 Top 10 und Bottom 5
 top10 = df.nlargest(10, "change_percent")
 bottom5 = df.nsmallest(5, "change_percent")
 
-# 🔹 Diagramm erstellen für Top 5 Aktien
+# 🔹 Diagramm Top10 erstellen
 plt.figure(figsize=(10,6))
 plt.bar(top10["ticker"], top10["change_percent"], color="green")
 plt.title("Top 10 Aktien der Stunde")
 plt.ylabel("Veränderung (%)")
+plt.xticks(rotation=45)
+plt.tight_layout()
 plt.savefig("top10_chart.png")
 plt.close()
 
 # 🔹 Discord Webhook laden
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK")
-
 if not DISCORD_WEBHOOK_URL:
     raise ValueError("Kein Discord Webhook Secret gefunden. Bitte DISCORD_WEBHOOK als Secret setzen!")
 
@@ -53,6 +55,6 @@ if OPENROUTER_API_KEY:
     except Exception as e:
         message += f"\n\n⚠️ KI konnte nicht antworten: {e}"
 
-# 🔹 Nachricht + Chart senden
+# 🔹 Nachricht + Diagramm senden
 with open("top10_chart.png", "rb") as f:
-    webhook.send(content=message, file=SyncWebhook.file(f))
+    webhook.send(content=message, file=File(f, filename="top10_chart.png"))
