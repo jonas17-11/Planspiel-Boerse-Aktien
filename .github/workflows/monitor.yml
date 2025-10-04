@@ -32,6 +32,7 @@ jobs:
           git config user.email "github-actions@github.com"
           git add monitor_output.json
           git commit -m "Update monitor_output.json [skip ci]" || echo "Keine Änderungen"
+          # Push auf main mit PAT
           git push https://${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }} HEAD:main
 
       - name: 🤖 Post to Discord
