@@ -11,18 +11,20 @@ with open("monitor_output.json", "r") as f:
 
 df = pd.DataFrame(data)
 
-# 🔹 Top 10 und Bottom 5
-top10 = df.nlargest(10, "change_percent")
+# 🔹 Top/Bottom 5 berechnen
+top5 = df.nlargest(5, "change_percent")
 bottom5 = df.nsmallest(5, "change_percent")
 
-# 🔹 Diagramm Top10 erstellen
-plt.figure(figsize=(10,6))
-plt.bar(top10["ticker"], top10["change_percent"], color="green")
-plt.title("Top 10 Aktien der Stunde")
+# 🔹 Diagramm Top5 + Bottom5 erstellen
+plt.figure(figsize=(12,6))
+plt.bar(top5["ticker"], top5["change_percent"], color="green", label="Top 5")
+plt.bar(bottom5["ticker"], bottom5["change_percent"], color="red", label="Bottom 5")
+plt.title("Top 5 und Bottom 5 Aktien der Stunde")
 plt.ylabel("Veränderung (%)")
 plt.xticks(rotation=45)
+plt.legend()
 plt.tight_layout()
-plt.savefig("top10_chart.png")
+plt.savefig("top_bottom_chart.png")
 plt.close()
 
 # 🔹 Discord Webhook laden
@@ -36,14 +38,14 @@ except Exception as e:
     raise ValueError(f"Webhook URL ungültig: {e}")
 
 # 🔹 Nachricht zusammenstellen
-message = f"**Top 10 Aktien:**\n{top10.to_string(index=False)}\n\n**Bottom 5 Aktien:**\n{bottom5.to_string(index=False)}"
+message = f"**Top 5 Aktien:**\n{top5.to_string(index=False)}\n\n**Bottom 5 Aktien:**\n{bottom5.to_string(index=False)}"
 
-# 🔹 KI Fazit generieren
+# 🔹 KI Fazit generieren (nur wenn API-Key korrekt)
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 if OPENROUTER_API_KEY:
-    client = OpenAI(api_key=OPENROUTER_API_KEY)
-    prompt = f"Hier sind die aktuellen Aktienwerte:\n{df.to_string(index=False)}\n\nGib mir eine kurze Analyse und Hypothesen, wo es sinnvoll sein könnte zu investieren."
     try:
+        client = OpenAI(api_key=OPENROUTER_API_KEY)
+        prompt = f"Hier sind die aktuellen Aktienwerte:\n{df.to_string(index=False)}\n\nGib mir eine kurze Analyse und Hypothesen, wo es sinnvoll sein könnte zu investieren."
         response = client.chat.completions.create(
             model="mistral-7b-instruct",
             messages=[{"role": "user", "content": prompt}],
@@ -56,5 +58,5 @@ if OPENROUTER_API_KEY:
         message += f"\n\n⚠️ KI konnte nicht antworten: {e}"
 
 # 🔹 Nachricht + Diagramm senden
-with open("top10_chart.png", "rb") as f:
-    webhook.send(content=message, file=File(f, filename="top10_chart.png"))
+with open("top_bottom_chart.png", "rb") as f:
+    webhook.send(content=message, file=File(f, filename="top_bottom_chart.png"))
