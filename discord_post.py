@@ -3,19 +3,26 @@ import json
 import pandas as pd
 import matplotlib.pyplot as plt
 from discord import SyncWebhook, File
-from openai import OpenAI
+import google.generativeai as genai
 
-# 🔹 Daten laden
+# 🔸 Gemini konfigurieren
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+else:
+    print("⚠️ Kein GEMINI_API_KEY gefunden — KI Fazit wird übersprungen.")
+
+# 🔸 Aktien-Daten laden
 with open("monitor_output.json", "r") as f:
     data = json.load(f)
 
 df = pd.DataFrame(data)
 
-# 🔹 Top/Bottom 5 berechnen
+# 🔸 Top 5 und Bottom 5 berechnen
 top5 = df.nlargest(5, "change_percent")
 bottom5 = df.nsmallest(5, "change_percent")
 
-# 🔹 Diagramm Top5 + Bottom5 erstellen
+# 🔸 Diagramm erstellen (Top 5 = grün, Bottom 5 = rot)
 plt.figure(figsize=(12,6))
 plt.bar(top5["ticker"], top5["change_percent"], color="green", label="Top 5")
 plt.bar(bottom5["ticker"], bottom5["change_percent"], color="red", label="Bottom 5")
@@ -27,36 +34,34 @@ plt.tight_layout()
 plt.savefig("top_bottom_chart.png")
 plt.close()
 
-# 🔹 Discord Webhook laden
+# 🔸 Discord Webhook
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK")
 if not DISCORD_WEBHOOK_URL:
-    raise ValueError("Kein Discord Webhook Secret gefunden. Bitte DISCORD_WEBHOOK als Secret setzen!")
+    raise ValueError("❌ Kein Discord Webhook Secret gefunden!")
 
-try:
-    webhook = SyncWebhook.from_url(DISCORD_WEBHOOK_URL)
-except Exception as e:
-    raise ValueError(f"Webhook URL ungültig: {e}")
+webhook = SyncWebhook.from_url(DISCORD_WEBHOOK_URL)
 
-# 🔹 Nachricht zusammenstellen
-message = f"**Top 5 Aktien:**\n{top5.to_string(index=False)}\n\n**Bottom 5 Aktien:**\n{bottom5.to_string(index=False)}"
+# 🔸 Basisnachricht mit Tabellen
+message = f"📊 **Top 5 Aktien:**\n```\n{top5.to_string(index=False)}\n```\n"
+message += f"📉 **Bottom 5 Aktien:**\n```\n{bottom5.to_string(index=False)}\n```"
 
-# 🔹 KI Fazit generieren (nur wenn API-Key korrekt)
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-if OPENROUTER_API_KEY:
+# 🔸 KI Fazit mit Gemini generieren
+if GEMINI_API_KEY:
     try:
-        client = OpenAI(api_key=OPENROUTER_API_KEY)
-        prompt = f"Hier sind die aktuellen Aktienwerte:\n{df.to_string(index=False)}\n\nGib mir eine kurze Analyse und Hypothesen, wo es sinnvoll sein könnte zu investieren."
-        response = client.chat.completions.create(
-            model="mistral-7b-instruct",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=250
+        model = genai.GenerativeModel("gemini-pro")
+        prompt = (
+            "Hier ist eine Tabelle mit Aktienwerten (Ticker, Preis, Veränderung):\n\n"
+            f"{df.to_string(index=False)}\n\n"
+            "Gib mir bitte eine kurze Analyse mit möglichen Investment-Hypothesen und Empfehlungen."
         )
-        ai_message = response.choices[0].message.content
-        message += f"\n\n**KI Fazit:**\n{ai_message}"
+        response = model.generate_content(prompt)
+        if response.text:
+            message += f"\n🤖 **Gemini Fazit:**\n{response.text}"
+        else:
+            message += "\n⚠️ KI hat keine Antwort zurückgegeben."
     except Exception as e:
-        message += f"\n\n⚠️ KI konnte nicht antworten: {e}"
+        message += f"\n⚠️ KI-Fehler: {e}"
 
-# 🔹 Nachricht + Diagramm senden
+# 🔸 Nachricht mit Bild senden
 with open("top_bottom_chart.png", "rb") as f:
     webhook.send(content=message, file=File(f, filename="top_bottom_chart.png"))
