@@ -44,8 +44,8 @@
   {
     "ticker": "JPM",
     "price": 309.18,
-    "previous_close": 310.03,
-    "change_percent": -0.27
+    "previous_close": 308.53,
+    "change_percent": 0.21
   },
   {
     "ticker": "V",
