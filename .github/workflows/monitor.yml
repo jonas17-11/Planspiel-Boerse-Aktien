@@ -10,44 +10,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Repository auschecken
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # 2️⃣ Python Setup
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      # 3️⃣ Dependencies installieren
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install yfinance matplotlib pandas google-generativeai discord.py
+          pip install yfinance pandas matplotlib google-generativeai discord.py
 
-      - name: Run monitor script
+      # 4️⃣ Monitor Script ausführen
+      - name: Run monitor.py
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python monitor.py
 
-      - name: Commit changes
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add monitor_output.json || true
-          git commit -m "Update monitor_output.json [skip ci]" || echo "No changes to commit"
-
-      # Push via PAT und PR falls Branch Protection aktiv
-      - name: Create Pull Request using PAT
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.PAT_TOKEN }}
-          commit-message: "Update monitor_output.json [skip ci]"
-          branch: monitor-output-update
-          title: "Automatisches Update monitor_output.json"
-          body: "Automatisch generiertes Update der Monitor-Daten."
-          base: main
-
+      # 5️⃣ Discord Post Script ausführen
       - name: Post to Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python discord_post.py
+
+      # 6️⃣ Optional: Commit monitor_output.json (wenn du willst)
+      # - name: Commit monitor_output.json
+      #   run: |
+      #     git config user.name "GitHub Actions"
+      #     git config user.email "actions@github.com"
+      #     git add monitor_output.json || true
+      #     git commit -m "Update monitor_output.json [skip ci]" || echo "No changes to commit"
+      #     git push origin main || echo "Push failed, evtl. Branch Protection aktiv"
