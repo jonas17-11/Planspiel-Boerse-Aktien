@@ -2,8 +2,8 @@ name: 📊 Monitor Stocks
 
 on:
   schedule:
-    - cron: '0 * * * *'   # ⏰ Läuft jede volle Stunde
-  workflow_dispatch:      # Manuelles Ausführen über GitHub UI möglich
+    - cron: '0 * * * *'  # jede volle Stunde
+  workflow_dispatch:      # manuelles Ausführen möglich
 
 jobs:
   monitor:
@@ -13,7 +13,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -26,8 +26,7 @@ jobs:
       - name: Run monitor script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          python monitor.py
+        run: python monitor.py
 
       - name: Commit changes
         run: |
@@ -36,16 +35,28 @@ jobs:
           git add monitor_output.json || true
           git commit -m "Update monitor_output.json [skip ci]" || echo "No changes to commit"
 
+      # Option 1: Direkt pushen über PAT
       - name: Push changes using PAT
+        if: github.ref == 'refs/heads/main'
         env:
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           git remote set-url origin https://x-access-token:${PAT_TOKEN}@github.com/${{ github.repository }}.git
           git push origin main
 
+      # Option 2: Pull Request erstellen, falls Branch Protection aktiv
+      - name: Create Pull Request (falls push fehlschlägt)
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          commit-message: "Update monitor_output.json [skip ci]"
+          branch: monitor-output-update
+          title: "Automatisches Update monitor_output.json"
+          body: "Automatisch generiertes Update der Monitor-Daten."
+          base: main
+
       - name: Post to Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          python discord_post.py
+        run: python discord_post.py
