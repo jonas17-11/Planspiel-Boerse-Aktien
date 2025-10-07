@@ -35,17 +35,8 @@ jobs:
           git add monitor_output.json || true
           git commit -m "Update monitor_output.json [skip ci]" || echo "No changes to commit"
 
-      # Option 1: Direkt pushen über PAT
-      - name: Push changes using PAT
-        if: github.ref == 'refs/heads/main'
-        env:
-          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          git remote set-url origin https://x-access-token:${PAT_TOKEN}@github.com/${{ github.repository }}.git
-          git push origin main
-
-      # Option 2: Pull Request erstellen, falls Branch Protection aktiv
-      - name: Create Pull Request (falls push fehlschlägt)
+      # Push via PAT und PR falls Branch Protection aktiv
+      - name: Create Pull Request using PAT
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.PAT_TOKEN }}
