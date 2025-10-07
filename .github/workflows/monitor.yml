@@ -1,43 +1,51 @@
-name: Monitor Stocks
+name: 📊 Monitor Stocks
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Läuft stündlich
-  workflow_dispatch:
+    - cron: '0 * * * *'   # ⏰ Läuft jede volle Stunde
+  workflow_dispatch:      # Manuelles Ausführen über GitHub UI möglich
 
 jobs:
-  run-monitor:
+  monitor:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Repository auschecken
-        uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Python einrichten
-        uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Abhängigkeiten installieren
+      - name: Install dependencies
         run: |
-          pip install pandas matplotlib discord google-generativeai yfinance
+          python -m pip install --upgrade pip
+          pip install yfinance matplotlib pandas google-generativeai discord.py
 
-      - name: Monitor Script ausführen
+      - name: Run monitor script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        run: python monitor.py
-
-      - name: Änderungen committen
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add monitor_output.json
-          git commit -m "Update monitor_output.json [skip ci]" || echo "Keine Änderungen zum Commit"
+          python monitor.py
 
-      - name: Änderungen pushen
+      - name: Commit changes
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add monitor_output.json || true
+          git commit -m "Update monitor_output.json [skip ci]" || echo "No changes to commit"
+
+      - name: Push changes using PAT
         env:
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           git remote set-url origin https://x-access-token:${PAT_TOKEN}@github.com/${{ github.repository }}.git
           git push origin main
+
+      - name: Post to Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python discord_post.py
