@@ -3,32 +3,35 @@ import os
 import pandas as pd
 from discord_webhook import DiscordWebhook, DiscordEmbed
 
-# Lade Discord Webhook aus GitHub Secrets (in GitHub Actions verfügbar als Umgebungsvariable)
+# Lade Discord Webhook aus GitHub Secrets
 webhook_url = os.getenv("DISCORD_WEBHOOK")
 if not webhook_url:
-    raise ValueError("DISCORD_WEBHOOK ist nicht gesetzt!")
+    raise ValueError("DISCORD_WEBHOOK ist nicht gesetzt! Bitte als Secret im GitHub Repo hinzufügen.")
 
 # Lade die Daten
-with open("monitor_output.json", "r") as f:
-    data = json.load(f)
+try:
+    with open("monitor_output.json", "r") as f:
+        data = json.load(f)
+except FileNotFoundError:
+    raise FileNotFoundError("monitor_output.json nicht gefunden! Bitte zuerst monitor.py ausführen.")
 
 df = pd.DataFrame(data)
 
-# Prüfe fehlende Spalten
+# Prüfe fehlende Spalten und füge sie ggf. hinzu
 required_cols = {"ticker", "price", "previous_close"}
 missing_cols = required_cols - set(df.columns)
 if missing_cols:
     print(f"Warnung: Fehlende Spalten: {missing_cols}")
     for col in missing_cols:
-        df[col] = None  # Spalte mit None füllen
+        df[col] = None
 
-# Fehlende Werte elegant behandeln (nicht 0, sondern "Daten fehlen")
+# Fehlende Werte elegant behandeln
 df.fillna({"price": "Daten fehlen", "previous_close": "Daten fehlen"}, inplace=True)
 
 # Berechne Kursänderung nur, wenn Werte numerisch sind
 def compute_change(row):
     try:
-        return float(row['price']) - float(row['previous_close'])
+        return round(float(row['price']) - float(row['previous_close']), 2)
     except:
         return "Daten fehlen"
 
