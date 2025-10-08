@@ -11,6 +11,15 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 # === 📊 Daten laden ===
 df = pd.read_json("monitor_output.json")
 
+# Sicherstellen, dass die nötigen Spalten existieren
+required_cols = {"ticker", "price", "previous_close"}
+if not required_cols.issubset(df.columns):
+    raise ValueError(f"Fehlende Spalten in monitor_output.json: {required_cols - set(df.columns)}")
+
+# Falls change_percent nicht vorhanden ist → neu berechnen
+if "change_percent" not in df.columns:
+    df["change_percent"] = ((df["price"] - df["previous_close"]) / df["previous_close"]) * 100
+
 # Top 5 & Bottom 5 Aktien bestimmen
 top5 = df.nlargest(5, 'change_percent')
 bottom5 = df.nsmallest(5, 'change_percent')
@@ -25,8 +34,8 @@ def df_to_discord_table(dataframe):
     )
     return f"{header}\n{separator}\n{rows}"
 
-top_table = df_to_discord_table(top5)
-bottom_table = df_to_discord_table(bottom5)
+top_table = df_to_discord_table(top5[["ticker", "price", "previous_close", "change_percent"]])
+bottom_table = df_to_discord_table(bottom5[["ticker", "price", "previous_close", "change_percent"]])
 
 # === 📈 Diagramm erstellen ===
 plt.figure(figsize=(10, 5))
@@ -46,10 +55,10 @@ try:
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel("gemini-1.5-flash")
     prompt = (
-        f"Hier sind die Top 5 und Bottom 5 Aktien (mit Preis, Schlusskurs und Veränderung in %):\n\n"
+        f"Hier sind die Top 5 und Bottom 5 Aktien mit Preis, Schlusskurs und Veränderung in %:\n\n"
         f"Top 5:\n{top5.to_string(index=False)}\n\n"
         f"Bottom 5:\n{bottom5.to_string(index=False)}\n\n"
-        f"Gib eine kurze Marktanalyse mit Fazit und Empfehlung (max. 4 Sätze)."
+        f"Gib eine kurze Marktanalyse mit Fazit und einer möglichen Investitionsempfehlung (max. 4 Sätze)."
     )
     response = model.generate_content(prompt)
     ki_fazit = response.text
