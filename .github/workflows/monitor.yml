@@ -1,48 +1,39 @@
-name: 📊 Monitor Stocks
+name: Planspiel-Boerse-Aktien
 
 on:
+  push:
+    branches:
+      - main
   schedule:
-    - cron: '0 * * * *'  # jede volle Stunde
-  workflow_dispatch:      # manuelles Ausführen möglich
+    - cron: '0 * * * *' # jede Stunde
 
 jobs:
-  monitor:
+  run-bot:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Repository auschecken
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      # Repository auschecken
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      # 2️⃣ Python Setup
+      # Python installieren
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: 3.11
 
-      # 3️⃣ Dependencies installieren
+      # Abhängigkeiten installieren
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install yfinance pandas matplotlib google-generativeai discord.py
+          pip install -r requirements.txt
 
-      # 4️⃣ Monitor Script ausführen
+      # monitor.py ausführen
       - name: Run monitor.py
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python monitor.py
 
-      # 5️⃣ Discord Post Script ausführen
-      - name: Post to Discord
+      # discord_post.py ausführen
+      - name: Run discord_post.py
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: python discord_post.py
-
-      # 6️⃣ Optional: Commit monitor_output.json (wenn du willst)
-      # - name: Commit monitor_output.json
-      #   run: |
-      #     git config user.name "GitHub Actions"
-      #     git config user.email "actions@github.com"
-      #     git add monitor_output.json || true
-      #     git commit -m "Update monitor_output.json [skip ci]" || echo "No changes to commit"
-      #     git push origin main || echo "Push failed, evtl. Branch Protection aktiv"
