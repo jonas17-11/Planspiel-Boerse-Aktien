@@ -1,6 +1,12 @@
 import json
+import os
 import pandas as pd
 from discord_webhook import DiscordWebhook, DiscordEmbed
+
+# Lade Discord Webhook aus GitHub Secrets (in GitHub Actions verfügbar als Umgebungsvariable)
+webhook_url = os.getenv("DISCORD_WEBHOOK")
+if not webhook_url:
+    raise ValueError("DISCORD_WEBHOOK ist nicht gesetzt!")
 
 # Lade die Daten
 with open("monitor_output.json", "r") as f:
@@ -16,14 +22,19 @@ if missing_cols:
     for col in missing_cols:
         df[col] = None  # Spalte mit None füllen
 
-# Optional: fehlende Werte auffüllen, damit Berechnungen nicht fehlschlagen
-df.fillna({"price": 0, "previous_close": 0}, inplace=True)
+# Fehlende Werte elegant behandeln (nicht 0, sondern "Daten fehlen")
+df.fillna({"price": "Daten fehlen", "previous_close": "Daten fehlen"}, inplace=True)
 
-# Beispiel: Berechne Kursänderung
-df['change'] = df['price'] - df['previous_close']
+# Berechne Kursänderung nur, wenn Werte numerisch sind
+def compute_change(row):
+    try:
+        return float(row['price']) - float(row['previous_close'])
+    except:
+        return "Daten fehlen"
+
+df['change'] = df.apply(compute_change, axis=1)
 
 # Bereite Discord-Nachricht vor
-webhook_url = "DEINE_DISCORD_WEBHOOK_URL"
 webhook = DiscordWebhook(url=webhook_url)
 
 for _, row in df.iterrows():
