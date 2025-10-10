@@ -5,93 +5,105 @@ import matplotlib.pyplot as plt
 from discord_webhook import DiscordWebhook, DiscordEmbed
 import requests
 
-# Lade Discord Webhook aus GitHub Secrets
-webhook_url = os.getenv("DISCORD_WEBHOOK")
-if not webhook_url:
-    raise ValueError("DISCORD_WEBHOOK ist nicht gesetzt!")
+# --- Einstellungen ---
+DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Lade Gemini API Key
-gemini_api_key = os.getenv("GEMINI_API_KEY")
-if not gemini_api_key:
-    raise ValueError("GEMINI_API_KEY ist nicht gesetzt!")
+if not DISCORD_WEBHOOK:
+    raise ValueError("❌ DISCORD_WEBHOOK ist nicht gesetzt!")
+if not GEMINI_API_KEY:
+    raise ValueError("❌ GEMINI_API_KEY ist nicht gesetzt!")
 
-# Lade die Daten
+# --- Daten laden ---
 with open("monitor_output.json", "r") as f:
     data = json.load(f)
 
 df = pd.DataFrame(data)
-
-# Prüfe und ergänze fehlende Spalten
 required_cols = {"ticker", "price", "previous_close"}
 for col in required_cols:
     if col not in df.columns:
         df[col] = None
 
-# Berechne Kursänderung in Prozent
-def compute_change_pct(row):
-    try:
-        return round((float(row['price']) - float(row['previous_close'])) / float(row['previous_close']) * 100, 2)
-    except:
-        return 0
+# Prozentuale Änderung berechnen
+df["change_pct"] = ((df["price"] - df["previous_close"]) / df["previous_close"]) * 100
+df = df.sort_values("change_pct", ascending=False).reset_index(drop=True)
 
-df['change_pct'] = df.apply(compute_change_pct, axis=1)
+# Top & Flop 5
+top5 = df.head(5)
+flop5 = df.tail(5).sort_values("change_pct")
 
-# Top 5 und Flop 5 Aktien
-top5 = df.sort_values(by='change_pct', ascending=False).head(5)
-flop5 = df.sort_values(by='change_pct').head(5)
+# --- Diagramm ---
+plt.figure(figsize=(8, 5))
+combined = pd.concat([top5, flop5])
+colors = ["green" if x > 0 else "red" for x in combined["change_pct"]]
+bars = plt.bar(combined["ticker"], combined["change_pct"], color=colors)
+plt.title("Top 5 & Flop 5 Aktien – % Veränderung")
+plt.ylabel("% Veränderung")
+plt.grid(axis="y", linestyle="--", alpha=0.5)
 
-# Markdown-Tabellen für Discord
-def create_table(df_subset, title):
-    table = f"**{title}**\n```\nTicker   Preis   % Änderung\n"
-    for _, row in df_subset.iterrows():
-        table += f"{row['ticker']:<7} {row['price']:<7} {row['change_pct']}%\n"
-    table += "```"
-    return table
+# Prozentwerte auf Balken schreiben
+for bar, val in zip(bars, combined["change_pct"]):
+    plt.text(bar.get_x() + bar.get_width()/2, val + (0.5 if val >= 0 else -1),
+             f"{val:.2f}%", ha="center", va="bottom" if val >= 0 else "top", fontsize=8)
 
-top_table = create_table(top5, "Top 5 Aktien")
-flop_table = create_table(flop5, "Flop 5 Aktien")
-
-# Diagramm erstellen
-plt.figure(figsize=(10,5))
-plt.bar(df['ticker'], df['change_pct'], color=['green' if x>=0 else 'red' for x in df['change_pct']])
-plt.xlabel("Ticker")
-plt.ylabel("% Änderung")
-plt.title("Aktienkursänderungen")
 plt.tight_layout()
-chart_file = "chart.png"
-plt.savefig(chart_file)
+chart_path = "top_flop_chart.png"
+plt.savefig(chart_path, dpi=300)
 plt.close()
 
-# KI-Fazit generieren via Gemini API
-def generate_ki_fazit(top, flop):
-    prompt = f"Schreibe ein kurzes Fazit über die Aktienperformance:\nTop Aktien: {', '.join(top['ticker'].tolist())}\nSchlechteste Aktien: {', '.join(flop['ticker'].tolist())}"
-    headers = {"Authorization": f"Bearer {gemini_api_key}"}
-    response = requests.post(
-        "https://api.gemini.com/v1/ai/generate",
-        headers=headers,
-        json={"prompt": prompt, "max_tokens": 100}
-    )
-    if response.status_code == 200:
-        return response.json().get("text", "Keine Antwort von KI")
-    else:
-        return f"KI-Fazit konnte nicht abgerufen werden (Status {response.status_code})"
+# --- Tabellen schöner machen ---
+def format_table(df, title):
+    header = f"**{title}**\n```Ticker | Preis | % Änderung\n----------------------------\n"
+    for _, row in df.iterrows():
+        header += f"{row['ticker']:<6} | {row['price']:<6.2f} | {row['change_pct']:+.2f}%\n"
+    return header + "```"
 
-ki_fazit = generate_ki_fazit(top5, flop5)
+top_table = format_table(top5, "Top 5 Aktien")
+flop_table = format_table(flop5, "Flop 5 Aktien")
 
-# Discord Nachricht vorbereiten
-webhook = DiscordWebhook(url=webhook_url)
+# --- Heuristik: Wahrscheinlich steigende Aktien ---
+# einfache Regel: moderate + positive Veränderung
+likely_to_rise = df[(df["change_pct"] > 0) & (df["change_pct"] < df["change_pct"].quantile(0.75))].head(3)
+rise_section = "**Aktien mit steigendem Potenzial:**\n" + ", ".join(likely_to_rise["ticker"].tolist() or ["Keine Kandidaten"])
 
-# Tabelle und KI-Fazit
-embed = DiscordEmbed(title="Aktien Update", color=242424)
-embed.add_embed_field(name="Top 5 Aktien", value=top_table)
-embed.add_embed_field(name="Flop 5 Aktien", value=flop_table)
-embed.add_embed_field(name="KI Fazit", value=ki_fazit)
+# --- KI-Fazit (Gemini API) ---
+def generate_gemini_fazit(top, flop):
+    prompt = f"""
+    Du bist ein Finanzanalyst. Analysiere diese Aktienbewegungen.
+    Top Aktien: {', '.join(top['ticker'].tolist())}
+    Flop Aktien: {', '.join(flop['ticker'].tolist())}
+    Gib ein kurzes Fazit auf Deutsch (max. 3 Sätze).
+    """
+    try:
+        response = requests.post(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent",
+            headers={"Content-Type": "application/json"},
+            params={"key": GEMINI_API_KEY},
+            json={"contents": [{"parts": [{"text": prompt}]}]}
+        )
+        response.raise_for_status()
+        out = response.json()
+        return out["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except Exception as e:
+        return f"⚠️ KI-Fazit konnte nicht abgerufen werden: {e}"
+
+ki_fazit = generate_gemini_fazit(top5, flop5)
+
+# --- Discord Nachricht ---
+webhook = DiscordWebhook(url=DISCORD_WEBHOOK)
+
+embed = DiscordEmbed(title="📊 Aktien-Update", color=0x1E90FF)
+embed.add_embed_field(name="🏆 Top 5 Aktien", value=top_table, inline=True)
+embed.add_embed_field(name="📉 Flop 5 Aktien", value=flop_table, inline=True)
+embed.add_embed_field(name="📈 Analyse", value=rise_section, inline=False)
+embed.add_embed_field(name="🤖 KI-Fazit", value=ki_fazit, inline=False)
+
+# Chart anhängen
+with open(chart_path, "rb") as f:
+    webhook.add_file(file=f.read(), filename="top_flop_chart.png")
+embed.set_image(url="attachment://top_flop_chart.png")
+
 webhook.add_embed(embed)
+webhook.execute()
 
-# Diagramm anhängen
-with open(chart_file, "rb") as f:
-    webhook.add_file(file=f.read(), filename=chart_file)
-
-# Senden
-response = webhook.execute()
-print("Discord Update gesendet!")
+print("✅ Discord Nachricht erfolgreich gesendet!")
