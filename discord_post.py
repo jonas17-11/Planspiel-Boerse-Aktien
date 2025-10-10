@@ -87,7 +87,6 @@ else:
         [f"{row['ticker']} (+{row['change_pct']:.2f}%)" for _, row in likely_to_rise.iterrows()]
     )
 
-
 # === KI-Fazit mit Gemini 1.5 Pro ===
 def generate_gemini_fazit(top, flop):
     """
@@ -128,11 +127,8 @@ def generate_gemini_fazit(top, flop):
     return ki_fazit
 
 # === Discord Embed mit KI-Fazit ===
-top = get_top_stocks()      # deine Funktion, die Top-Aktien liefert
-flop = get_flop_stocks()    # deine Funktion, die Flop-Aktien liefert
-
-# KI-Fazit generieren
-ki_fazit = generate_gemini_fazit(top, flop)
+# top5 und flop5 sind bereits definiert in deinem Skript
+ki_fazit = generate_gemini_fazit(top5, flop5)
 
 # Embed erstellen
 embed = discord.Embed(
@@ -144,7 +140,6 @@ embed.add_embed_field(name="🤖 KI-Fazit", value=ki_fazit, inline=False)
 
 # Restlicher Embed-Code hier, z.B. senden via webhook
 send_discord_embed(embed)
-
 
 # === Discord Nachricht ===
 webhook = DiscordWebhook(url=DISCORD_WEBHOOK)
