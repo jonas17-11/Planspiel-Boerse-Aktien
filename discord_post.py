@@ -88,45 +88,34 @@ else:
     )
 
 
-# === Gemini API Helfer ===
-def get_first_available_model():
-    """Ruft die verfügbaren Gemini-Modelle ab und gibt den ersten zurück"""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={API_KEY}"
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        models = response.json().get("models", [])
-        if not models:
-            raise ValueError("Keine Modelle verfügbar.")
-        first_model = models[0]["name"]
-        print(f"Verwende Modell: {first_model}")
-        return first_model
-    except requests.exceptions.RequestException as e:
-        raise RuntimeError(f"Fehler beim Abrufen der Modelle: {e}")
+# === KI-Fazit mit Gemini 1.5 Pro ===
+def generate_gemini_fazit(top, flop):
+    prompt = f"""
+    Du bist ein Finanzanalyst. Analysiere die heutigen Kursänderungen.
+    Top Aktien: {', '.join(top['ticker'].tolist())}
+    Flop Aktien: {', '.join(flop['ticker'].tolist())}
+    Gib ein kurzes, verständliches Fazit auf Deutsch (max. 3 Sätze).
+    """
 
-def generate_ki_fazit(stocks, model_name):
-    stock_names = ", ".join([safe_name(s) for s in stocks])
-    content = f"Schreibe ein kurzes KI-Fazit über die Aktien: {stock_names}."
-    
-    url = f"https://generativelanguage.googleapis.com/v1beta2/models/{model_name}:generateText?key={API_KEY}"
-    data = {
-        "model": model_name,
-        "prompt": [{"type": "text", "content": content}],
-        "temperature": 0.7,
-        "max_output_tokens": 200
-    }
-    
     try:
-        response = requests.post(url, headers={"Content-Type": "application/json"}, json=data)
+        response = requests.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateText?key={GEMINI_API_KEY}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [{"text": prompt}]
+                    }
+                ]
+            },
+            timeout=20,
+        )
         response.raise_for_status()
         result = response.json()
-        return result.get("candidates", [{"content": "⚠️ KI-Fazit konnte nicht abgerufen werden"}])[0]["content"]
-    except requests.exceptions.RequestException as e:
-        return f"⚠️ KI-Fazit konnte nicht abgerufen werden: {e}"
-    except (KeyError, IndexError):
-        return "⚠️ KI-Fazit konnte nicht abgerufen werden: Ungültige Antwort vom Modell"
-
-ki_fazit = generate_ki_fazit(top5, flop5)
+        return result["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except Exception as e:
+        return f"⚠️ KI-Fazit konnte nicht abgerufen werden: {str(e)}"
 
 # === Discord Nachricht ===
 webhook = DiscordWebhook(url=DISCORD_WEBHOOK)
