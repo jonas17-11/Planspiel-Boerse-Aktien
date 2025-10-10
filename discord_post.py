@@ -77,16 +77,13 @@ def format_table(df, title):
 top_table = format_table(top5, "🏆 Top 5 Aktien")
 flop_table = format_table(flop5, "📉 Flop 5 Aktien")
 
-# === Heuristik: 3 Aktien mit Potenzial ===
-likely_to_rise = (
-    df[(df["change_pct"] > 0) & (df["change_pct"] < df["change_pct"].quantile(0.75))]
-    .nlargest(3, "price")
-)
+# Immer 3 beste positive Aktien anzeigen (ohne Wiederholung)
+likely_to_rise = df[df["change_pct"] > 0].nlargest(3, "change_pct")
 if likely_to_rise.empty:
     rise_section = "**Aktien mit steigendem Potenzial:** Keine gefunden."
 else:
     rise_section = "**Aktien mit steigendem Potenzial:**\n" + ", ".join(
-        likely_to_rise["ticker"].tolist()
+        [f"{row['ticker']} (+{row['change_pct']:.2f}%)" for _, row in likely_to_rise.iterrows()]
     )
 
 # === KI-Fazit mit Gemini 1.5 Pro ===
@@ -100,10 +97,15 @@ def generate_gemini_fazit(top, flop):
 
     try:
         response = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={GEMINI_API_KEY}",
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={GEMINI_API_KEY}",
             headers={"Content-Type": "application/json"},
             json={
-                "contents": [{"role": "user", "parts": [{"text": prompt}]}]
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [{"text": prompt}]
+                    }
+                ]
             },
             timeout=20,
         )
@@ -111,7 +113,7 @@ def generate_gemini_fazit(top, flop):
         result = response.json()
         return result["candidates"][0]["content"]["parts"][0]["text"].strip()
     except Exception as e:
-        return f"⚠️ KI-Fazit konnte nicht abgerufen werden: {e}"
+        return f"⚠️ KI-Fazit konnte nicht abgerufen werden: {str(e)}"
 
 ki_fazit = generate_gemini_fazit(top5, flop5)
 
@@ -131,7 +133,9 @@ embed.set_image(url="attachment://top_flop_chart.png")
 
 webhook.add_embed(embed)
 
-# Nur EINMAL senden
-webhook.execute()
-
-print("✅ Discord Nachricht erfolgreich gesendet!")
+if __name__ == "__main__":
+    response = webhook.execute()
+    if response.status_code == 200 or response.status_code == 204:
+        print("✅ Discord Nachricht erfolgreich gesendet!")
+    else:
+        print(f"⚠️ Fehler beim Senden: {response.status_code} - {response.text}")
