@@ -1,46 +1,93 @@
 import json
 import os
-import requests
+import pandas as pd
 import matplotlib.pyplot as plt
-from io import BytesIO
+from discord_webhook import DiscordWebhook, DiscordEmbed
+import requests
 
-# === CONFIG aus Secrets ===
-DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK")
-API_KEY = os.environ.get("GEMINI_API_KEY")
+# === Umgebungsvariablen ===
+DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Pfad zur JSON-Datei im Root-Verzeichnis
-MONITOR_OUTPUT_FILE = os.path.join(os.getcwd(), "monitor-output.json")
+if not DISCORD_WEBHOOK:
+    raise ValueError("❌ DISCORD_WEBHOOK ist nicht gesetzt!")
+if not GEMINI_API_KEY:
+    raise ValueError("❌ GEMINI_API_KEY ist nicht gesetzt!")
 
-# Secrets prüfen
-if not DISCORD_WEBHOOK_URL or not API_KEY:
-    raise ValueError("Bitte stelle sicher, dass DISCORD_WEBHOOK und GEMINI_API_KEY gesetzt sind!")
+# === Daten laden ===
+with open("monitor_output.json", "r") as f:
+    data = json.load(f)
 
-# Datei prüfen oder leere Liste anlegen, falls fehlt
-if not os.path.exists(MONITOR_OUTPUT_FILE):
-    print(f"Warnung: {MONITOR_OUTPUT_FILE} nicht gefunden. Erstelle Dummy-Datei.")
-    with open(MONITOR_OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump([], f)
+df = pd.DataFrame(data)
 
-# === Hilfsfunktionen ===
-def load_data(file_path):
-    with open(file_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+# Fehlende Spalten absichern
+required_cols = {"ticker", "price", "previous_close"}
+for col in required_cols:
+    if col not in df.columns:
+        df[col] = None
 
-def safe_get(stock, key, default=0):
-    return stock.get(key, default) if stock else default
+# Konvertiere Zahlen
+df["price"] = pd.to_numeric(df["price"], errors="coerce")
+df["previous_close"] = pd.to_numeric(df["previous_close"], errors="coerce")
 
-def safe_name(stock):
-    return stock.get("name", "Unbekannt") if stock else "Unbekannt"
+# Entferne Zeilen ohne gültige Werte
+df = df.dropna(subset=["price", "previous_close"])
 
-def get_top_flop_stocks(data, top_n=5):
-    sorted_stocks = sorted(data, key=lambda x: safe_get(x, "prozentuale_veränderung"), reverse=True)
-    top = sorted_stocks[:top_n]
-    flop = sorted_stocks[-top_n:]
-    return top, flop
+# Kursänderung in %
+df["change_pct"] = ((df["price"] - df["previous_close"]) / df["previous_close"]) * 100
+df = df.sort_values("change_pct", ascending=False).reset_index(drop=True)
 
-def get_growth_recommendations(data, n=3):
-    sorted_growth = sorted(data, key=lambda x: safe_get(x, "wachstumspotenzial"), reverse=True)
-    return sorted_growth[:n]
+# Top & Flop 5
+top5 = df.head(5)
+flop5 = df.tail(5).sort_values("change_pct")
+
+# === Diagramm: Top & Flop 5 ===
+plt.figure(figsize=(8, 5))
+combined = pd.concat([top5, flop5])
+colors = ["green" if x > 0 else "red" for x in combined["change_pct"]]
+
+bars = plt.bar(combined["ticker"], combined["change_pct"], color=colors)
+plt.title("Top 5 & Flop 5 Aktien – % Veränderung")
+plt.ylabel("% Veränderung")
+plt.grid(axis="y", linestyle="--", alpha=0.5)
+
+# Prozentwerte über Balken schreiben
+for bar, val in zip(bars, combined["change_pct"]):
+    plt.text(
+        bar.get_x() + bar.get_width() / 2,
+        val + (0.5 if val >= 0 else -1),
+        f"{val:+.2f}%",
+        ha="center",
+        va="bottom" if val >= 0 else "top",
+        fontsize=8,
+    )
+
+plt.tight_layout()
+chart_path = "top_flop_chart.png"
+plt.savefig(chart_path, dpi=300)
+plt.close()
+
+# === Tabellen schöner formatieren ===
+def format_table(df, title):
+    header = f"**{title}**\n```Ticker | Preis  | % Änderung\n----------------------------\n"
+    for _, row in df.iterrows():
+        header += f"{row['ticker']:<6} | {row['price']:<6.2f} | {row['change_pct']:+6.2f}%\n"
+    return header + "```"
+
+top_table = format_table(top5, "🏆 Top 5 Aktien")
+flop_table = format_table(flop5, "📉 Flop 5 Aktien")
+
+# === Heuristik: 3 Aktien mit Potenzial ===
+likely_to_rise = (
+    df[(df["change_pct"] > 0) & (df["change_pct"] < df["change_pct"].quantile(0.75))]
+    .nlargest(3, "price")
+)
+if likely_to_rise.empty:
+    rise_section = "**Aktien mit steigendem Potenzial:** Keine gefunden."
+else:
+    rise_section = "**Aktien mit steigendem Potenzial:**\n" + ", ".join(
+        likely_to_rise["ticker"].tolist()
+    )
 
 # === Gemini API Helfer ===
 def get_first_available_model():
@@ -80,72 +127,25 @@ def generate_ki_fazit(stocks, model_name):
     except (KeyError, IndexError):
         return "⚠️ KI-Fazit konnte nicht abgerufen werden: Ungültige Antwort vom Modell"
 
-# === Diagramm ===
-def create_diagram(top, flop):
-    names = [safe_name(s) for s in top + flop]
-    values = [safe_get(s, "prozentuale_veränderung") for s in top + flop]
-    colors = ["green"] * len(top) + ["red"] * len(flop)
-    
-    plt.figure(figsize=(10, 6))
-    bars = plt.bar(names, values, color=colors)
-    plt.ylabel("Prozentuale Veränderung")
-    plt.title("Top & Flop 5 Aktien")
-    plt.xticks(rotation=45, ha="right")
-    
-    for bar, val in zip(bars, values):
-        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(),
-                 f"{val:.2f}%", ha='center', va='bottom', fontsize=10)
-    
-    plt.tight_layout()
-    img_buffer = BytesIO()
-    plt.savefig(img_buffer, format="png")
-    img_buffer.seek(0)
-    plt.close()
-    return img_buffer
+ki_fazit = generate_gemini_fazit(top5, flop5)
 
 # === Discord Nachricht ===
-def send_to_discord(top, flop, recommendations, ki_fazit, diagram_bytes):
-    def format_table(stocks, is_top=True):
-        lines = ["```diff"]
-        for s in stocks:
-            name = safe_name(s)
-            val = safe_get(s, "prozentuale_veränderung")
-            emoji = "📈" if val > 0 else "📉"
-            sign = "+" if is_top else "-"
-            lines.append(f"{sign} {name}: {emoji} {val:.2f}%")
-        lines.append("```")
-        return "\n".join(lines)
-    
-    message = "**📈 Top 5 Aktien**\n" + format_table(top, is_top=True)
-    message += "\n**📉 Flop 5 Aktien**\n" + format_table(flop, is_top=False)
-    message += "\n**💡 Empfehlungen (höchstes Wachstumspotenzial)**\n"
-    message += ", ".join([safe_name(s) for s in recommendations])
-    message += f"\n\n**🤖 KI-Fazit**\n{ki_fazit}"
-    
-    # Nachricht senden
-    try:
-        r = requests.post(DISCORD_WEBHOOK_URL, json={"content": message})
-        r.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print(f"Fehler beim Senden der Nachricht an Discord: {e}")
-    
-    # Diagramm senden
-    try:
-        files = {"file": ("diagram.png", diagram_bytes, "image/png")}
-        r = requests.post(DISCORD_WEBHOOK_URL, files=files)
-        r.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print(f"Fehler beim Senden des Diagramms an Discord: {e}")
+webhook = DiscordWebhook(url=DISCORD_WEBHOOK)
 
-# === MAIN ===
-if __name__ == "__main__":
-    data = load_data(MONITOR_OUTPUT_FILE)
-    top, flop = get_top_flop_stocks(data)
-    recommendations = get_growth_recommendations(data)
-    
-    # Modell automatisch abrufen
-    model_name = get_first_available_model()
-    ki_fazit = generate_ki_fazit(recommendations, model_name)
-    
-    diagram_bytes = create_diagram(top, flop)
-    send_to_discord(top, flop, recommendations, ki_fazit, diagram_bytes)
+embed = DiscordEmbed(title="📊 Aktien-Update", color=0x1E90FF)
+embed.add_embed_field(name="🏆 Top 5 Aktien", value=top_table, inline=True)
+embed.add_embed_field(name="📉 Flop 5 Aktien", value=flop_table, inline=True)
+embed.add_embed_field(name="📈 Analyse", value=rise_section, inline=False)
+embed.add_embed_field(name="🤖 KI-Fazit", value=ki_fazit, inline=False)
+
+# Chart anhängen & einbinden
+with open(chart_path, "rb") as f:
+    webhook.add_file(file=f.read(), filename="top_flop_chart.png")
+embed.set_image(url="attachment://top_flop_chart.png")
+
+webhook.add_embed(embed)
+
+# Nur EINMAL senden
+webhook.execute()
+
+print("✅ Discord Nachricht erfolgreich gesendet!")
