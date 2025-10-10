@@ -1,40 +1,41 @@
 name: Planspiel-Boerse-Aktien
 
 on:
-  workflow_dispatch:      # manuelle Ausführung möglich
+  workflow_dispatch:      # ➜ ermöglicht manuelles Starten
   push:
     branches:
       - main
   schedule:
-    - cron: '0 * * * *'   # jede Stunde
+    - cron: '0 * * * *'   # ➜ jede Stunde automatisch
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
 
     steps:
-      # Repository auschecken
+      # 🧩 Repository auschecken
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Python installieren
+      # 🐍 Python installieren
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
 
-      # Abhängigkeiten installieren
+      # 📦 Dependencies installieren
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # monitor.py ausführen
+      # 📈 monitor.py ausführen (holt aktuelle Kursdaten)
       - name: Run monitor.py
         run: python monitor.py
 
-      # discord_post.py ausführen
+      # 💬 discord_post.py ausführen (postet Nachricht an Discord)
       - name: Run discord_post.py
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python discord_post.py
