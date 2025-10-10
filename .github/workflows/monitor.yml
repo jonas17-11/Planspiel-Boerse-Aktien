@@ -1,7 +1,7 @@
 name: Planspiel-Boerse-Aktien
 
 on:
-  workflow_dispatch:      # ➜ ermöglicht manuelles Starten
+  workflow_dispatch:      # ➜ manuelles Starten
   push:
     branches:
       - main
@@ -38,4 +38,7 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python discord_post.py
+        run: |
+          python -c "import sys; \
+try: import discord_post; print('✅ discord_post.py executed successfully') \
+except Exception as e: print('⚠️ Fehler beim Ausführen von discord_post.py:', e); sys.exit(1)"
