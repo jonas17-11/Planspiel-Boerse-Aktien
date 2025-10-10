@@ -7,7 +7,6 @@ from io import BytesIO
 # === CONFIG aus Secrets ===
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK")
 API_KEY = os.environ.get("GEMINI_API_KEY")
-MODEL_NAME = "gemini-2.5-flash-preview-09-2025"  # Aktualisiertes Modell
 
 # Pfad zur JSON-Datei im Root-Verzeichnis
 MONITOR_OUTPUT_FILE = os.path.join(os.getcwd(), "monitor-output.json")
@@ -43,13 +42,29 @@ def get_growth_recommendations(data, n=3):
     sorted_growth = sorted(data, key=lambda x: safe_get(x, "wachstumspotenzial"), reverse=True)
     return sorted_growth[:n]
 
-def generate_ki_fazit(stocks):
+# === Gemini API Helfer ===
+def get_first_available_model():
+    """Ruft die verfügbaren Gemini-Modelle ab und gibt den ersten zurück"""
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={API_KEY}"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        models = response.json().get("models", [])
+        if not models:
+            raise ValueError("Keine Modelle verfügbar.")
+        first_model = models[0]["name"]
+        print(f"Verwende Modell: {first_model}")
+        return first_model
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"Fehler beim Abrufen der Modelle: {e}")
+
+def generate_ki_fazit(stocks, model_name):
     stock_names = ", ".join([safe_name(s) for s in stocks])
     content = f"Schreibe ein kurzes KI-Fazit über die Aktien: {stock_names}."
     
-    url = f"https://generativelanguage.googleapis.com/v1beta2/models/{MODEL_NAME}:generateText?key={API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta2/models/{model_name}:generateText?key={API_KEY}"
     data = {
-        "model": MODEL_NAME,
+        "model": model_name,
         "prompt": [{"type": "text", "content": content}],
         "temperature": 0.7,
         "max_output_tokens": 200
@@ -65,6 +80,7 @@ def generate_ki_fazit(stocks):
     except (KeyError, IndexError):
         return "⚠️ KI-Fazit konnte nicht abgerufen werden: Ungültige Antwort vom Modell"
 
+# === Diagramm ===
 def create_diagram(top, flop):
     names = [safe_name(s) for s in top + flop]
     values = [safe_get(s, "prozentuale_veränderung") for s in top + flop]
@@ -87,6 +103,7 @@ def create_diagram(top, flop):
     plt.close()
     return img_buffer
 
+# === Discord Nachricht ===
 def send_to_discord(top, flop, recommendations, ki_fazit, diagram_bytes):
     def format_table(stocks, is_top=True):
         lines = ["```diff"]
@@ -125,6 +142,10 @@ if __name__ == "__main__":
     data = load_data(MONITOR_OUTPUT_FILE)
     top, flop = get_top_flop_stocks(data)
     recommendations = get_growth_recommendations(data)
-    ki_fazit = generate_ki_fazit(recommendations)
+    
+    # Modell automatisch abrufen
+    model_name = get_first_available_model()
+    ki_fazit = generate_ki_fazit(recommendations, model_name)
+    
     diagram_bytes = create_diagram(top, flop)
     send_to_discord(top, flop, recommendations, ki_fazit, diagram_bytes)
