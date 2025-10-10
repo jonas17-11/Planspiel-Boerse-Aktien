@@ -8,16 +8,21 @@ from io import BytesIO
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK")
 API_KEY = os.environ.get("GEMINI_API_KEY")
 MODEL_NAME = "gemini-1.5-turbo"
-MONITOR_OUTPUT_FILE = os.path.join(os.path.dirname(__file__), "monitor-output.json")
 
+# Pfad zur JSON-Datei im Root-Verzeichnis
+MONITOR_OUTPUT_FILE = os.path.join(os.getcwd(), "monitor-output.json")
+
+# Secrets prüfen
 if not DISCORD_WEBHOOK_URL or not API_KEY:
     raise ValueError("Bitte stelle sicher, dass DISCORD_WEBHOOK und GEMINI_API_KEY gesetzt sind!")
 
+# Datei prüfen oder leere Liste anlegen, falls fehlt
 if not os.path.exists(MONITOR_OUTPUT_FILE):
-    raise FileNotFoundError(f"Datei nicht gefunden: {MONITOR_OUTPUT_FILE}")
+    print(f"Warnung: {MONITOR_OUTPUT_FILE} nicht gefunden. Erstelle Dummy-Datei.")
+    with open(MONITOR_OUTPUT_FILE, "w", encoding="utf-8") as f:
+        json.dump([], f)
 
-# === Funktionen ===
-
+# === Hilfsfunktionen ===
 def load_data(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -71,13 +76,11 @@ def create_diagram(top, flop):
     plt.title("Top & Flop 5 Aktien")
     plt.xticks(rotation=45, ha="right")
     
-    # Prozentwerte direkt auf die Balken schreiben
     for bar, val in zip(bars, values):
         plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(),
                  f"{val:.2f}%", ha='center', va='bottom', fontsize=10)
     
     plt.tight_layout()
-    
     img_buffer = BytesIO()
     plt.savefig(img_buffer, format="png")
     img_buffer.seek(0)
@@ -86,7 +89,7 @@ def create_diagram(top, flop):
 
 def send_to_discord(top, flop, recommendations, ki_fazit, diagram_bytes):
     def format_table(stocks, is_top=True):
-        lines = ["```diff"]  # diff-Syntax für farbliche Darstellung
+        lines = ["```diff"]
         for s in stocks:
             name = safe_name(s)
             val = safe_get(s, "prozentuale_veränderung")
