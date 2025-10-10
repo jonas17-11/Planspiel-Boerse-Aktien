@@ -126,7 +126,7 @@ def generate_ki_fazit(stocks, model_name):
     except (KeyError, IndexError):
         return "⚠️ KI-Fazit konnte nicht abgerufen werden: Ungültige Antwort vom Modell"
 
-ki_fazit = generate_gemini_fazit(top5, flop5)
+ki_fazit = generate_ki_fazit(top5, flop5)
 
 # === Discord Nachricht ===
 webhook = DiscordWebhook(url=DISCORD_WEBHOOK)
