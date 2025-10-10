@@ -90,12 +90,18 @@ else:
 
 # === KI-Fazit mit Gemini 1.5 Pro ===
 def generate_gemini_fazit(top, flop):
+    """
+    Generiert ein kurzes Finanzfazit für Top- und Flop-Aktien.
+    Gibt immer einen String zurück, auch bei Fehlern.
+    """
     prompt = f"""
     Du bist ein Finanzanalyst. Analysiere die heutigen Kursänderungen.
     Top Aktien: {', '.join(top['ticker'].tolist())}
     Flop Aktien: {', '.join(flop['ticker'].tolist())}
     Gib ein kurzes, verständliches Fazit auf Deutsch (max. 3 Sätze).
     """
+
+    ki_fazit = "⚠️ KI-Fazit konnte nicht abgerufen werden."  # Default-Wert
 
     try:
         response = requests.post(
@@ -113,9 +119,32 @@ def generate_gemini_fazit(top, flop):
         )
         response.raise_for_status()
         result = response.json()
-        return result["candidates"][0]["content"]["parts"][0]["text"].strip()
+        # Prüfen, ob die Antwort korrekt ist
+        if result.get("candidates") and len(result["candidates"]) > 0:
+            ki_fazit = result["candidates"][0]["content"]["parts"][0]["text"].strip()
     except Exception as e:
-        return f"⚠️ KI-Fazit konnte nicht abgerufen werden: {str(e)}"
+        ki_fazit = f"⚠️ KI-Fazit konnte nicht abgerufen werden: {str(e)}"
+
+    return ki_fazit
+
+# === Discord Embed mit KI-Fazit ===
+top = get_top_stocks()      # deine Funktion, die Top-Aktien liefert
+flop = get_flop_stocks()    # deine Funktion, die Flop-Aktien liefert
+
+# KI-Fazit generieren
+ki_fazit = generate_gemini_fazit(top, flop)
+
+# Embed erstellen
+embed = discord.Embed(
+    title="📊 Tagesauswertung der Aktien",
+    description="Hier ist die Auswertung der Top- und Flop-Aktien von heute",
+    color=0x00ff00
+)
+embed.add_embed_field(name="🤖 KI-Fazit", value=ki_fazit, inline=False)
+
+# Restlicher Embed-Code hier, z.B. senden via webhook
+send_discord_embed(embed)
+
 
 # === Discord Nachricht ===
 webhook = DiscordWebhook(url=DISCORD_WEBHOOK)
