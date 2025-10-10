@@ -78,16 +78,15 @@ top_table = format_table(top5, "🏆 Top 5 Aktien")
 flop_table = format_table(flop5, "📉 Flop 5 Aktien")
 
 # === Heuristik: 3 Aktien mit Potenzial ===
-likely_to_rise = (
-    df[(df["change_pct"] > 0) & (df["change_pct"] < df["change_pct"].quantile(0.75))]
-    .nlargest(3, "price")
-)
+# Immer 3 beste positive Aktien anzeigen (ohne Wiederholung)
+likely_to_rise = df[df["change_pct"] > 0].nlargest(3, "change_pct")
 if likely_to_rise.empty:
     rise_section = "**Aktien mit steigendem Potenzial:** Keine gefunden."
 else:
     rise_section = "**Aktien mit steigendem Potenzial:**\n" + ", ".join(
-        likely_to_rise["ticker"].tolist()
+        [f"{row['ticker']} (+{row['change_pct']:.2f}%)" for _, row in likely_to_rise.iterrows()]
     )
+
 
 # === Gemini API Helfer ===
 def get_first_available_model():
