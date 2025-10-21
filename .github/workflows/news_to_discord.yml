@@ -1,0 +1,27 @@
+name: Send Stock News to Discord
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'  # alle 3 Stunden
+  workflow_dispatch:       # manuell startbar
+
+jobs:
+  send_news:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests feedparser
+
+      - name: Run news script
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python news_to_discord.py
