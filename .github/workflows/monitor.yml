@@ -6,7 +6,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 14-22 * * 1-5'   # ➜ jede Stunde automatisch
+    - cron: '0 15-22 * * 1-5'   # ➜ jede Stunde automatisch
 
 jobs:
   run-bot:
