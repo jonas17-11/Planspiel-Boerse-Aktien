@@ -4,6 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from discord_webhook import DiscordWebhook, DiscordEmbed
 import requests
+from datetime import datetime
+import pytz
 
 # === Umgebungsvariablen ===
 DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
@@ -13,6 +15,11 @@ if not DISCORD_WEBHOOK:
     raise ValueError("❌ DISCORD_WEBHOOK ist nicht gesetzt!")
 if not GEMINI_API_KEY:
     raise ValueError("❌ GEMINI_API_KEY ist nicht gesetzt!")
+
+# === Zeitzone für Anzeige ===
+TZ_BERLIN = pytz.timezone("Europe/Berlin")
+now_berlin = datetime.now(TZ_BERLIN)
+update_time_str = now_berlin.strftime("%Y-%m-%d %H:%M:%S")
 
 # === Daten laden ===
 with open("monitor_output.json", "r") as f:
@@ -29,8 +36,6 @@ for col in required_cols:
 # Konvertiere Zahlen
 df["price"] = pd.to_numeric(df["price"], errors="coerce")
 df["previous_close"] = pd.to_numeric(df["previous_close"], errors="coerce")
-
-# Entferne Zeilen ohne gültige Werte
 df = df.dropna(subset=["price", "previous_close"])
 
 # Kursänderung in %
@@ -51,7 +56,6 @@ plt.title("Top 5 & Flop 5 Aktien – % Veränderung")
 plt.ylabel("% Veränderung")
 plt.grid(axis="y", linestyle="--", alpha=0.5)
 
-# Prozentwerte über Balken schreiben
 for bar, val in zip(bars, combined["change_pct"]):
     plt.text(
         bar.get_x() + bar.get_width() / 2,
@@ -95,16 +99,11 @@ def generate_gemini_fazit(top, flop):
     Gib ein kurzes, verständliches Fazit auf Deutsch (max. 3 Sätze).
     """
     ki_fazit = "⚠️ KI-Fazit konnte nicht abgerufen werden."  # Default-Wert
-
     try:
         response = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}",
             headers={"Content-Type": "application/json"},
-            json={
-                "contents": [
-                    {"role": "user", "parts": [{"text": prompt}]}
-                ]
-            },
+            json={"contents":[{"role":"user","parts":[{"text":prompt}]}]},
             timeout=20,
         )
         response.raise_for_status()
@@ -113,20 +112,18 @@ def generate_gemini_fazit(top, flop):
             ki_fazit = result["candidates"][0]["content"]["parts"][0]["text"].strip()
     except Exception as e:
         ki_fazit = f"⚠️ KI-Fazit konnte nicht abgerufen werden: {str(e)}"
-
     return ki_fazit
 
 ki_fazit = generate_gemini_fazit(top5, flop5)
 
+# === Prüfen, ob sich Daten geändert haben ===
+if os.path.exists("no_change.flag"):
+    change_note = f"⚠️ Keine neuen Kursänderungen seit dem letzten Update ({update_time_str})."
+else:
+    change_note = f"✅ Daten wurden seit dem letzten Lauf aktualisiert ({update_time_str})."
+
 # === Discord Nachricht zusammenbauen ===
 webhook = DiscordWebhook(url=DISCORD_WEBHOOK)
-
-# Prüfen, ob sich seit dem letzten Lauf etwas geändert hat
-if os.path.exists("no_change.flag"):
-    change_note = "⚠️ Alte Werte von gestern! Nicht darauf hören."
-else:
-    change_note = "✅ Daten wurden seit dem letzten Lauf aktualisiert."
-
 embed = DiscordEmbed(title="📊 Aktien-Update", color=0x1E90FF)
 embed.set_description(change_note)
 
@@ -141,8 +138,6 @@ with open(chart_path, "rb") as f:
 embed.set_image(url="attachment://top_flop_chart.png")
 
 webhook.add_embed(embed)
-
-# Nachricht senden
 webhook.execute()
 
-print("✅ Discord Nachricht erfolgreich gesendet!")
+print(f"✅ Discord Nachricht erfolgreich gesendet! ({update_time_str})")
