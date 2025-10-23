@@ -121,7 +121,15 @@ ki_fazit = generate_gemini_fazit(top5, flop5)
 # === Discord Nachricht zusammenbauen ===
 webhook = DiscordWebhook(url=DISCORD_WEBHOOK)
 
+# Prüfen, ob sich seit dem letzten Lauf etwas geändert hat
+if os.path.exists("no_change.flag"):
+    change_note = "⚠️ Alte Werte von gestern! Nicht darauf hören."
+else:
+    change_note = "✅ Daten wurden seit dem letzten Lauf aktualisiert."
+
 embed = DiscordEmbed(title="📊 Aktien-Update", color=0x1E90FF)
+embed.set_description(change_note)
+
 embed.add_embed_field(name="🏆 Top 5 Aktien", value=top_table, inline=True)
 embed.add_embed_field(name="📉 Flop 5 Aktien", value=flop_table, inline=True)
 embed.add_embed_field(name="📈 Analyse", value=rise_section, inline=False)
