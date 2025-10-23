@@ -17,7 +17,6 @@ def is_market_open(market: str) -> bool:
     if market == "XETRA":
         return 9 <= now_berlin.hour < 17 or (now_berlin.hour == 17 and now_berlin.minute <= 30)
     elif market == "NYSE":
-        from datetime import timezone, timedelta
         now_ny = datetime.now(pytz.timezone("America/New_York"))
         return (now_ny.hour > 9 or (now_ny.hour == 9 and now_ny.minute >= 30)) and now_ny.hour < 16
     elif market == "TOKYO":
@@ -78,7 +77,7 @@ for ticker_symbol in tickers:
         print(f"⚠️ Fehler bei {ticker_symbol}: {e}")
         output_data.append({"ticker": ticker_symbol, "market": None, "price": None, "previous_close": None})
 
-# === Alte Daten vergleichen (robust) ===
+# === Alte Daten vergleichen (signifikante Änderungen) ===
 old_data = None
 if os.path.exists("monitor_output.json"):
     with open("monitor_output.json", "r") as f:
@@ -87,25 +86,27 @@ if os.path.exists("monitor_output.json"):
         except json.JSONDecodeError:
             old_data = None
 
-def simplify(data):
-    simplified = []
-    for row in data:
-        simplified.append({
-            "ticker": row.get("ticker"),
-            "price": round(row.get("price",0) or 0,2),
-            "previous_close": round(row.get("previous_close",0) or 0,2)
-        })
-    return simplified
+def prices_changed(old, new, tol=0.01):
+    """Prüft, ob sich ein Preis um mehr als tol verändert hat."""
+    old_dict = {row['ticker']: (row.get('price') or 0, row.get('previous_close') or 0) for row in old} if old else {}
+    for row in new:
+        ticker = row['ticker']
+        price, prev = row.get('price') or 0, row.get('previous_close') or 0
+        if ticker not in old_dict:
+            return True
+        old_price, old_prev = old_dict[ticker]
+        if abs(price - old_price) > tol or abs(prev - old_prev) > tol:
+            return True
+    return False
 
-# Änderungen erkennen
-if old_data is not None and simplify(old_data) == simplify(output_data):
-    print("⚠️ Keine Änderungen gegenüber dem letzten Lauf erkannt.")
+if old_data is not None and not prices_changed(old_data, output_data):
+    print("ℹ️ Keine signifikanten Änderungen erkannt.")
     with open("no_change.flag", "w") as f:
         f.write("no change")
 else:
     if os.path.exists("no_change.flag"):
         os.remove("no_change.flag")
-    print("✅ Neue Daten erkannt und gespeichert.")
+    print("✅ Neue Kursdaten erkannt und gespeichert.")
 
 # JSON speichern
 with open("monitor_output.json", "w") as f:
