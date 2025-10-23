@@ -60,6 +60,7 @@ for ticker_symbol in tickers:
         market = detect_market(ticker_symbol)
         market_open = is_market_open(market)
 
+        # === Live oder Tagesdaten ===
         if market_open:
             if market == "XETRA":
                 interval = "15m"
@@ -99,7 +100,7 @@ for ticker_symbol in tickers:
             "previous_close": None
         })
 
-# === Alte Daten vergleichen ===
+# === Alte Daten vergleichen (robust) ===
 old_data = None
 if os.path.exists("monitor_output.json"):
     with open("monitor_output.json", "r") as f:
@@ -108,12 +109,23 @@ if os.path.exists("monitor_output.json"):
         except json.JSONDecodeError:
             old_data = None
 
-# === Speichern und Vergleich ===
+# Funktion zum Vereinfachen der Daten für Vergleich
+def simplify(data):
+    simplified = []
+    for row in data:
+        simplified.append({
+            "ticker": row.get("ticker"),
+            "price": round(row.get("price", 0) or 0, 2),
+            "previous_close": round(row.get("previous_close", 0) or 0, 2)
+        })
+    return simplified
+
+# === JSON schreiben ===
 with open("monitor_output.json", "w") as f:
     json.dump(output_data, f, indent=4)
 
 # === Prüfen, ob sich etwas geändert hat ===
-if old_data == output_data:
+if old_data is not None and simplify(old_data) == simplify(output_data):
     print("⚠️ Keine Änderungen gegenüber dem letzten Lauf erkannt.")
     with open("no_change.flag", "w") as f:
         f.write("no change")
