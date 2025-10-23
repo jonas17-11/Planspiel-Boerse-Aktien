@@ -3,6 +3,7 @@ import yfinance as yf
 from datetime import datetime
 import pytz
 import time
+import os
 
 # === Zeitzonen ===
 TZ_BERLIN = pytz.timezone("Europe/Berlin")
@@ -17,32 +18,21 @@ now_hk = datetime.now(TZ_HONGKONG)
 
 # === Handelszeiten prüfen ===
 def is_market_open(market: str) -> bool:
-    """Prüft, ob der jeweilige Markt gerade geöffnet ist."""
     weekday = now_berlin.weekday()
-    if weekday >= 5:  # Wochenende
+    if weekday >= 5:
         return False
-
     if market == "XETRA":
-        # Xetra (Deutschland): 09:00–17:30 Uhr (MEZ)
         return 9 <= now_berlin.hour < 17 or (now_berlin.hour == 17 and now_berlin.minute <= 30)
-
     elif market == "NYSE":
-        # NYSE/Nasdaq (USA): 09:30–16:00 Uhr (New York Zeit)
         return (now_ny.hour > 9 or (now_ny.hour == 9 and now_ny.minute >= 30)) and now_ny.hour < 16
-
     elif market == "TOKYO":
-        # Tokyo: 09:00–15:00 Uhr (Japan Zeit)
         return 9 <= now_tokyo.hour < 15
-
     elif market == "HONGKONG":
-        # Hong Kong: 09:30–16:00 Uhr (Hongkong Zeit)
         return (now_hk.hour > 9 or (now_hk.hour == 9 and now_hk.minute >= 30)) and now_hk.hour < 16
-
     return False
 
 # === Börse anhand Tickers erkennen ===
 def detect_market(ticker_symbol: str) -> str:
-    """Erkennt, zu welcher Börse der Ticker gehört."""
     ticker_symbol = ticker_symbol.upper()
     if ticker_symbol.endswith(".DE") or ticker_symbol.endswith(".F"):
         return "XETRA"
@@ -51,7 +41,7 @@ def detect_market(ticker_symbol: str) -> str:
     elif ticker_symbol.endswith(".HK"):
         return "HONGKONG"
     else:
-        return "NYSE"  # Default: US
+        return "NYSE"
 
 # === Ticker einlesen ===
 with open("tickers.txt", "r") as f:
@@ -70,7 +60,6 @@ for ticker_symbol in tickers:
         market = detect_market(ticker_symbol)
         market_open = is_market_open(market)
 
-        # === Live oder Tagesdaten ===
         if market_open:
             if market == "XETRA":
                 interval = "15m"
@@ -80,7 +69,6 @@ for ticker_symbol in tickers:
                 interval = "10m"
             else:
                 interval = "30m"
-
             data = ticker.history(period="1d", interval=interval)
         else:
             data = ticker.history(period="2d")
@@ -100,8 +88,7 @@ for ticker_symbol in tickers:
         })
 
         print(f"✅ {ticker_symbol} ({market}): {price} (Prev: {previous_close})")
-
-        time.sleep(0.4)  # gegen Rate-Limits
+        time.sleep(0.4)
 
     except Exception as e:
         print(f"⚠️ Fehler bei {ticker_symbol}: {e}")
@@ -112,8 +99,27 @@ for ticker_symbol in tickers:
             "previous_close": None
         })
 
-# === JSON schreiben ===
+# === Alte Daten vergleichen ===
+old_data = None
+if os.path.exists("monitor_output.json"):
+    with open("monitor_output.json", "r") as f:
+        try:
+            old_data = json.load(f)
+        except json.JSONDecodeError:
+            old_data = None
+
+# === Speichern und Vergleich ===
 with open("monitor_output.json", "w") as f:
     json.dump(output_data, f, indent=4)
+
+# === Prüfen, ob sich etwas geändert hat ===
+if old_data == output_data:
+    print("⚠️ Keine Änderungen gegenüber dem letzten Lauf erkannt.")
+    with open("no_change.flag", "w") as f:
+        f.write("no change")
+else:
+    if os.path.exists("no_change.flag"):
+        os.remove("no_change.flag")
+    print("✅ Neue Daten erkannt und gespeichert.")
 
 print("\n📈 monitor_output.json erfolgreich aktualisiert!")
