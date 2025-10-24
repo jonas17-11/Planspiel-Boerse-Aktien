@@ -107,29 +107,31 @@ with open("prognose.txt", "r") as f:
 def fetch_data(ticker, period="1mo", interval="1d"):
     try:
         df = yf.download(ticker, period=period, interval=interval, progress=False)
+        if df.empty:
+            return None
         return df
     except Exception as e:
         print(f"Fehler bei {ticker}: {e}")
         return None
 
 def analyze_pattern(df):
-    """
-    Trendanalyse:
-    Berechnet pro Asset den prozentualen Veränderung von Start bis Ende.
-    """
-    if df is None or df.empty or "Close" not in df.columns:
+    if df is None or df.empty or 'Close' not in df.columns:
         return None, 0
 
     start = df['Close'].iloc[0]
     end = df['Close'].iloc[-1]
-    change = ((end - start) / start) * 100  # Prozentuale Veränderung
 
-    if change > 2:
-        return "Aufwärts-Trend 📈", round(change, 2)
-    elif change < -2:
-        return "Abwärts-Trend 📉", round(change, 2)
+    if pd.isna(start) or pd.isna(end):
+        return None, 0
+
+    change = float((end - start) / start)
+
+    if change > 0.02:
+        return "Aufwärts-Trend 📈", round(change*100, 2)
+    elif change < -0.02:
+        return "Abwärts-Trend 📉", round(change*100, 2)
     else:
-        return "Seitwärts-Trend ➖", round(change, 2)
+        return "Seitwärts-Trend ➖", round(change*100, 2)
 
 def get_analysis():
     results = []
