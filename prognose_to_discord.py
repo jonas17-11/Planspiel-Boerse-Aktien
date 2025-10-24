@@ -5,7 +5,7 @@ from analyzer import get_analysis
 WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
 
 def build_discord_message(analysis):
-    # Sortiere nach Confidence und nehme Top 10
+    # Sortiere nach Confidence und Top 10 nehmen
     sorted_results = sorted(analysis, key=lambda x: x["confidence"], reverse=True)[:10]
 
     message = "**📊 Top 10 Chart-Patterns:**\n"
