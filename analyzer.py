@@ -28,12 +28,12 @@ ASSET_NAMES = {
     "EURAUD=X": "Euro / Australischer Dollar",
     "EURCAD=X": "Euro / Kanadischer Dollar",
     # Edelmetalle & Rohstoffe
-    "XAUUSD": "Gold",
-    "XAGUSD": "Silber",
-    "XPTUSD": "Platin",
-    "XPDUSD": "Palladium",
-    "WTI": "Rohöl (West Texas)",
-    "BRENT": "Brent-Öl",
+    "XAUUSD=X": "Gold",
+    "XAGUSD=X": "Silber",
+    "XPTUSD=X": "Platin",
+    "XPDUSD=X": "Palladium",
+    "WTI=X": "Rohöl (West Texas)",
+    "BRENT=X": "Brent-Öl",
     "NG=F": "Erdgas",
     "HG=F": "Kupfer",
     "SI=F": "Silber (Futures)",
@@ -106,8 +106,9 @@ with open("prognose.txt", "r") as f:
 
 def fetch_data(ticker, period="1mo", interval="1d"):
     try:
-        df = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=True)
+        df = yf.download(ticker, period=period, interval=interval, progress=False)
         if df.empty:
+            print(f"Keine Daten für {ticker}")
             return None
         return df
     except Exception as e:
@@ -119,8 +120,12 @@ def analyze_pattern(df):
     if df is None or df.empty:
         return None, 0
 
-    start = df['Close'].iloc[0]
-    end = df['Close'].iloc[-1]
+    close = df['Close'].dropna()
+    if close.empty:
+        return None, 0
+
+    start = float(close.iloc[0])
+    end = float(close.iloc[-1])
     change = (end - start) / start
 
     if change > 0.02:
@@ -134,6 +139,8 @@ def get_analysis():
     results = []
     for ticker in assets:
         df = fetch_data(ticker)
+        if df is None:
+            continue
         pattern, confidence = analyze_pattern(df)
         if pattern:
             results.append({
