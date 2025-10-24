@@ -51,31 +51,37 @@ def analyze_and_predict(df, days_ahead=5):
     model = LinearRegression()
     model.fit(X, y)
 
-    trend = model.coef_[0]
+    trend = float(model.coef_[0])
     predicted_values = model.predict([[len(df) + i] for i in range(days_ahead)])
 
     # SMA-basierte Pattern-Erkennung
     df["SMA20"] = df["Close"].rolling(20).mean()
     df["SMA50"] = df["Close"].rolling(50).mean()
 
+    # Letzte Werte sicher extrahieren
+    sma20 = float(df["SMA20"].iloc[-1]) if not np.isnan(df["SMA20"].iloc[-1]) else df["Close"].iloc[-1]
+    sma50 = float(df["SMA50"].iloc[-1]) if not np.isnan(df["SMA50"].iloc[-1]) else df["Close"].iloc[-1]
+    close = float(df["Close"].iloc[-1])
+
     pattern = "Seitwärtsbewegung ➖"
     confidence = 50
 
-    if df["SMA20"].iloc[-1] > df["SMA50"].iloc[-1] and trend > 0:
+    # --- Pattern-Erkennung ---
+    if sma20 > sma50 and trend > 0:
         pattern = "Golden Cross ✨ (Aufwärtstrend bestätigt)"
         confidence = 88
-    elif df["SMA20"].iloc[-1] < df["SMA50"].iloc[-1] and trend < 0:
+    elif sma20 < sma50 and trend < 0:
         pattern = "Death Cross 💀 (Abwärtstrend bestätigt)"
         confidence = 88
-    elif trend > 0 and df["Close"].iloc[-1] > df["SMA20"].iloc[-1]:
+    elif trend > 0 and close > sma20:
         pattern = "Möglicher Breakout 🚀"
         confidence = 78
-    elif trend < 0 and df["Close"].iloc[-1] < df["SMA20"].iloc[-1]:
+    elif trend < 0 and close < sma20:
         pattern = "Möglicher Breakdown 🔻"
         confidence = 78
 
     # Prozentänderung berechnen
-    change_percent = ((predicted_values[-1] - df["Close"].iloc[-1]) / df["Close"].iloc[-1]) * 100
+    change_percent = ((predicted_values[-1] - close) / close) * 100
 
     # Prognosedaten
     future_dates = [df.index[-1] + timedelta(days=i + 1) for i in range(days_ahead)]
