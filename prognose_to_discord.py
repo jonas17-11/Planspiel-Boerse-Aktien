@@ -2,15 +2,45 @@ import requests
 from analyzer import run_analysis_patterns
 import os
 
-# Webhook aus GitHub Secrets
 WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
 if not WEBHOOK_URL:
     raise ValueError("❌ PROGNOSE_WEBHOOK Secret nicht gefunden. Bitte in GitHub Secrets setzen.")
 
+# --- Helper für Farb-Formatierung ---
+def color_pattern(line, trend_strength):
+    """Fügt grün für bullish und rot für bearish Patterns hinzu"""
+    if trend_strength > 0:
+        return f"+ {line}"  # grün
+    else:
+        return f"- {line}"  # rot
+
+def format_message():
+    raw_report = run_analysis_patterns()
+    lines = raw_report.split("\n")
+
+    formatted_lines = ["```diff"]
+    for line in lines:
+        if line.startswith("📈") or line.startswith("📉"):
+            formatted_lines.append(f"\n{line}")
+        elif ":" in line:
+            symbol, rest = line.split(":", 1)
+            if "|" in rest:
+                patterns, confidence = rest.split("|")
+                patterns = patterns.strip()  # nur Pattern-Namen
+                confidence = confidence.strip()
+                trend_strength = float(confidence.split()[0])
+                colored_line = color_pattern(f"**{symbol.strip()}**: {patterns} | 🔮 {confidence}", trend_strength)
+                formatted_lines.append(colored_line)
+            else:
+                formatted_lines.append(line)
+        else:
+            formatted_lines.append(line)
+    formatted_lines.append("```")
+    return "\n".join(formatted_lines)
+
 def post_to_discord():
-    # Analyse starten
-    message = run_analysis_patterns()
-    
+    message = format_message()
+
     # Discord limitiert Nachrichten auf 2000 Zeichen → splitten
     chunk_size = 1900
     payloads = [message[i:i+chunk_size] for i in range(0, len(message), chunk_size)]
