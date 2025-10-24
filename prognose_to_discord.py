@@ -5,21 +5,35 @@ from analyzer import get_analysis
 WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
 
 def build_discord_message(analysis):
-    # Sortiere nach Confidence und Top 10 nehmen
-    sorted_results = sorted(analysis, key=lambda x: x["confidence"], reverse=True)[:10]
+    if not analysis:
+        return "Keine Analyse-Ergebnisse verfügbar."
 
-    message = "**📊 Top 10 Chart-Patterns:**\n"
-    for item in sorted_results:
-        message += f"- **{item['name']}**: {item['pattern']} ({item['confidence']}%)\n"
+    # Sortiere nach Aufwärtstrend (höchster positiver Change)
+    top_up = sorted([a for a in analysis if a["confidence"] > 0], key=lambda x: x["confidence"], reverse=True)[:10]
+
+    # Sortiere nach Abwärtstrend (höchster negativer Change)
+    top_down = sorted([a for a in analysis if a["confidence"] < 0], key=lambda x: x["confidence"])[:10]
+
+    message = "**📊 Top 10 Aufwärts-Trends:**\n"
+    if top_up:
+        for item in top_up:
+            message += f"- **{item['name']}**: {item['pattern']} ({item['confidence']}%)\n"
+    else:
+        message += "Keine Aufwärtstrends in den letzten Tagen 📉\n"
+
+    message += "\n**📉 Top 10 Abwärts-Trends:**\n"
+    if top_down:
+        for item in top_down:
+            message += f"- **{item['name']}**: {item['pattern']} ({item['confidence']}%)\n"
+    else:
+        message += "Keine Abwärtstrends in den letzten Tagen 📈\n"
+
     return message
 
 def post_to_discord():
     analysis = get_analysis()
-    if not analysis:
-        print("Keine Analyse-Ergebnisse.")
-        return
-
     message = build_discord_message(analysis)
+
     payload = {"content": message}
     response = requests.post(WEBHOOK_URL, json=payload)
     if response.status_code == 204:
