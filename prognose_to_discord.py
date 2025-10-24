@@ -1,42 +1,31 @@
-import json
 import os
 import requests
-from datetime import datetime
+from analyzer import get_analysis
 
-WEBHOOK_URL = os.environ.get("PROGNOSE_WEBHOOK")
+WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
 
-def build_message():
-    with open("results.json", "r") as f:
-        results = json.load(f)
+def build_discord_message(analysis):
+    # Sortiere nach Confidence und nehme Top 10
+    sorted_results = sorted(analysis, key=lambda x: x["confidence"], reverse=True)[:10]
 
-    # Auf- und Abwärtstrends sortieren
-    up = sorted([r for r in results if r['confidence'] >= 0.85], key=lambda x: x['confidence'], reverse=True)[:10]
-    down = sorted([r for r in results if r['confidence'] < 0.85], key=lambda x: x['confidence'])[:10]
-
-    description = f"📊 **Top-Picks Chart-Pattern Analyse** ({datetime.utcnow().strftime('%d.%m.%Y %H:%M UTC')})\n\n"
-
-    description += "**Aufwärtstrends:**\n"
-    for r in up:
-        description += f"{r['name']}: {', '.join(r['patterns'])} | Confidence: {r['confidence']:.2f}\n"
-
-    description += "\n**Abwärtstrends:**\n"
-    for r in down:
-        description += f"{r['name']}: {', '.join(r['patterns'])} | Confidence: {r['confidence']:.2f}\n"
-
-    return description
+    message = "**📊 Top 10 Chart-Patterns:**\n"
+    for item in sorted_results:
+        message += f"- **{item['name']}**: {item['pattern']} ({item['confidence']}%)\n"
+    return message
 
 def post_to_discord():
-    message = build_message()
-    data = {"content": message}
+    analysis = get_analysis()
+    if not analysis:
+        print("Keine Analyse-Ergebnisse.")
+        return
 
-    try:
-        response = requests.post(WEBHOOK_URL, json=data)
-        if response.status_code == 204:
-            print("Erfolgreich gesendet ✅")
-        else:
-            print(f"Fehler beim Senden: {response.status_code} - {response.text}")
-    except Exception as e:
-        print(f"Exception beim Senden: {e}")
+    message = build_discord_message(analysis)
+    payload = {"content": message}
+    response = requests.post(WEBHOOK_URL, json=payload)
+    if response.status_code == 204:
+        print("Erfolgreich in Discord gesendet ✅")
+    else:
+        print(f"Fehler beim Senden: {response.status_code} {response.text}")
 
 if __name__ == "__main__":
     post_to_discord()
