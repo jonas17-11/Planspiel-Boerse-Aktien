@@ -52,16 +52,19 @@ def analyze_and_predict(df, days_ahead=5):
     model.fit(X, y)
 
     trend = float(model.coef_[0])
-    predicted_values = model.predict([[len(df) + i] for i in range(days_ahead)])
+    predicted_values = model.predict([[len(df) + i] for i in range(days_ahead)]).flatten()
 
     # SMA-basierte Pattern-Erkennung
     df["SMA20"] = df["Close"].rolling(20).mean()
     df["SMA50"] = df["Close"].rolling(50).mean()
 
     # Letzte Werte sicher extrahieren
-    sma20 = float(df["SMA20"].iloc[-1]) if not np.isnan(df["SMA20"].iloc[-1]) else df["Close"].iloc[-1]
-    sma50 = float(df["SMA50"].iloc[-1]) if not np.isnan(df["SMA50"].iloc[-1]) else df["Close"].iloc[-1]
-    close = float(df["Close"].iloc[-1])
+    sma20 = df["SMA20"].iloc[-1] if not pd.isna(df["SMA20"].iloc[-1]) else df["Close"].iloc[-1]
+    sma50 = df["SMA50"].iloc[-1] if not pd.isna(df["SMA50"].iloc[-1]) else df["Close"].iloc[-1]
+    close = df["Close"].iloc[-1]
+
+    # In float umwandeln (kompatibel mit künftigen Pandas)
+    sma20, sma50, close = float(sma20), float(sma50), float(close)
 
     pattern = "Seitwärtsbewegung ➖"
     confidence = 50
@@ -83,9 +86,12 @@ def analyze_and_predict(df, days_ahead=5):
     # Prozentänderung berechnen
     change_percent = ((predicted_values[-1] - close) / close) * 100
 
-    # Prognosedaten
+    # Prognosedaten (jetzt flach & sicher)
     future_dates = [df.index[-1] + timedelta(days=i + 1) for i in range(days_ahead)]
-    forecast_df = pd.DataFrame({"Date": future_dates, "Predicted": predicted_values})
+    forecast_df = pd.DataFrame({
+        "Date": future_dates,
+        "Predicted": predicted_values
+    })
     forecast_df.set_index("Date", inplace=True)
 
     return pattern, confidence, change_percent, df, forecast_df
