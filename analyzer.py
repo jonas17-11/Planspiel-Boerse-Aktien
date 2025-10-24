@@ -1,6 +1,7 @@
 import yfinance as yf
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import os
 
 ASSET_NAMES = {
@@ -30,16 +31,13 @@ ASSET_NAMES = {
     # Weitere Assets hier...
 }
 
-# Assets aus prognose.txt
 with open("prognose.txt", "r") as f:
     assets = [line.split()[0] for line in f if line.strip() and not line.startswith("#")]
 
 def fetch_data(ticker, period="1mo", interval="1d"):
     try:
         df = yf.download(ticker, period=period, interval=interval, progress=False)
-        if df.empty:
-            return None
-        return df
+        return df if not df.empty else None
     except Exception as e:
         print(f"Fehler bei {ticker}: {e}")
         return None
@@ -50,10 +48,6 @@ def analyze_pattern(df):
 
     start = df['Close'].iloc[0]
     end = df['Close'].iloc[-1]
-
-    if pd.isna(start) or pd.isna(end):
-        return None, 0
-
     change = float((end - start) / start)
 
     if change > 0.02:
@@ -64,13 +58,27 @@ def analyze_pattern(df):
         return "Seitwärts-Trend ➖", round(change*100,2)
 
 def plot_asset(df, ticker):
-    plt.figure(figsize=(8,4))
-    plt.plot(df.index, df['Close'], marker='o', linestyle='-', color='blue')
-    plt.title(f"{ASSET_NAMES.get(ticker,ticker)} - Kursverlauf")
+    pattern, _ = analyze_pattern(df)
+
+    color = "gray"
+    if pattern.startswith("Aufwärts"):
+        color = "green"
+    elif pattern.startswith("Abwärts"):
+        color = "red"
+
+    plt.figure(figsize=(10,5))
+    plt.plot(df.index, df['Close'], marker='o', linestyle='-', color=color, linewidth=2, markersize=4)
+    plt.title(f"{ASSET_NAMES.get(ticker,ticker)} - {pattern}", fontsize=14, fontweight='bold')
     plt.xlabel("Datum")
     plt.ylabel("Preis")
-    plt.grid(True)
-    # Speichern als Bild
+    plt.grid(alpha=0.3)
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d.%m'))
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    # Letzten Wert anzeigen
+    plt.text(df.index[-1], df['Close'].iloc[-1], f"{df['Close'].iloc[-1]:.2f}", fontsize=9, fontweight='bold', color=color, va='bottom')
+
     filename = f"charts/{ticker}.png"
     os.makedirs("charts", exist_ok=True)
     plt.savefig(filename)
