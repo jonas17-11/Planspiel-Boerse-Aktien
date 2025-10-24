@@ -1,55 +1,72 @@
-import yfinance as yf
-import pandas as pd
-import numpy as np
+import json
+import random
+from datetime import datetime
 
-# Patterns (Beispiele, erweiterbar)
-CHART_PATTERNS = [
-    "Bullish Flag", "Bearish Flag", "Double Top", "Double Bottom",
-    "Head and Shoulders", "Inverse Head and Shoulders", "Cup and Handle",
-    "Rising Wedge", "Falling Wedge", "Triangle", "Rectangle"
-]
+# Mapping von Tickers zu ausgeschriebenen Namen
+ASSET_NAMES = {
+    # Forex
+    "EURUSD": "Euro / US-Dollar", "USDJPY": "US-Dollar / Japanischer Yen", "GBPUSD": "Britisches Pfund / US-Dollar",
+    "AUDUSD": "Australischer Dollar / US-Dollar", "USDCAD": "US-Dollar / Kanadischer Dollar", "USDCHF": "US-Dollar / Schweizer Franken",
+    "NZDUSD": "Neuseeland-Dollar / US-Dollar", "EURGBP": "Euro / Britisches Pfund", "EURJPY": "Euro / Japanischer Yen",
+    "EURCHF": "Euro / Schweizer Franken", "GBPJPY": "Britisches Pfund / Japanischer Yen", "AUDJPY": "Australischer Dollar / Japanischer Yen",
+    "CHFJPY": "Schweizer Franken / Japanischer Yen", "EURNZD": "Euro / Neuseeland-Dollar", "USDNOK": "US-Dollar / Norwegische Krone",
+    "USDDKK": "US-Dollar / Dänische Krone", "USDSEK": "US-Dollar / Schwedische Krone", "USDTRY": "US-Dollar / Türkische Lira",
+    "USDMXN": "US-Dollar / Mexikanischer Peso", "USDCNH": "US-Dollar / Chinesischer Yuan", "GBPAUD": "Britisches Pfund / Australischer Dollar",
+    "EURAUD": "Euro / Australischer Dollar", "EURCAD": "Euro / Kanadischer Dollar",
 
-# Einlesen der Assets
-with open("prognose.txt", "r", encoding="utf-8") as f:
-    ASSETS = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+    # Edelmetalle & Rohstoffe
+    "XAUUSD": "Gold", "XAGUSD": "Silber", "XPTUSD": "Platin", "XPDUSD": "Palladium",
+    "WTI": "Rohöl (WTI)", "BRENT": "Brent-Öl", "NG=F": "Erdgas", "HG=F": "Kupfer",
+    "SI=F": "Silber (Futures)", "GC=F": "Gold (Futures)", "CL=F": "Crude Oil (Futures)",
+    "PL=F": "Platin (Futures)", "PA=F": "Palladium (Futures)", "ZC=F": "Mais (Futures)",
+    "ZS=F": "Sojabohnen (Futures)", "ZR=F": "Weizen (Futures)", "KC=F": "Kaffee",
+    "SB=F": "Zucker", "CT=F": "Baumwolle",
 
-def download_data(symbol):
-    try:
-        data = yf.download(symbol, period="7d", interval="1h", progress=False, auto_adjust=True)
-        if data.empty:
-            return None
-        return data
-    except Exception as e:
-        print(f"Fehler beim Download von {symbol}: {e}")
-        return None
+    # Indizes
+    "^GSPC": "S&P 500", "^DJI": "Dow Jones", "^IXIC": "Nasdaq 100", "^GDAXI": "DAX 40",
+    "^FCHI": "CAC 40", "^FTSE": "FTSE 100", "^N225": "Nikkei 225", "^HSI": "Hang Seng",
+    "000001.SS": "Shanghai Composite", "^BVSP": "Bovespa", "^GSPTSE": "TSX Kanada",
+    "^SSMI": "SMI Schweiz", "^AS51": "ASX 200 Australien", "^MXX": "IPC Mexiko",
+    "^STOXX50E": "Euro Stoxx 50", "^IBEX": "IBEX 35 Spanien", "^NSEI": "Nifty 50 Indien",
 
-def detect_patterns(data):
-    """
-    Dummy-Funktion für Pattern-Erkennung.
-    In echt kannst du hier komplexe Logik einfügen.
-    Gibt zufällig 1-3 Patterns zurück + confidence.
-    """
-    num_patterns = np.random.randint(1, 4)
-    patterns = list(np.random.choice(CHART_PATTERNS, size=num_patterns, replace=False))
-    confidence = float(np.random.uniform(0.6, 0.99))  # Wahrscheinlichkeit 60%-99%
-    return patterns, confidence
+    # Kryptowährungen
+    "BTC-USD": "Bitcoin", "ETH-USD": "Ethereum", "BNB-USD": "Binance Coin", "SOL-USD": "Solana",
+    "XRP-USD": "Ripple", "ADA-USD": "Cardano", "DOGE-USD": "Dogecoin", "DOT-USD": "Polkadot",
+    "AVAX-USD": "Avalanche", "LTC-USD": "Litecoin", "TRX-USD": "Tron", "LINK-USD": "Chainlink",
+    "ATOM-USD": "Cosmos", "MATIC-USD": "Polygon", "UNI-USD": "Uniswap", "EOS-USD": "EOS",
+    "FTT-USD": "FTX Token", "ALGO-USD": "Algorand", "XTZ-USD": "Tezos", "NEO-USD": "NEO",
+    "AAVE-USD": "Aave", "COMP-USD": "Compound", "MKR-USD": "Maker", "SUSHI-USD": "SushiSwap",
+    "FIL-USD": "Filecoin", "ICP-USD": "Internet Computer", "LUNA-USD": "Terra", "CEL-USD": "Celsius",
+    "RVN-USD": "Ravencoin", "KSM-USD": "Kusama", "ENJ-USD": "Enjin Coin", "CHZ-USD": "Chiliz"
+}
 
-def run_analysis_patterns():
-    results = []
-    for symbol in ASSETS:
-        data = download_data(symbol)
-        if data is None:
-            continue
-        patterns, confidence = detect_patterns(data)
-        results.append({
-            "symbol": symbol,
-            "patterns": patterns,
-            "confidence": confidence
-        })
-    # Sortieren nach Wahrscheinlichkeit
-    results_sorted = sorted(results, key=lambda x: x["confidence"], reverse=True)
-    # Top 10 Aufwärts (hier Dummy, einfach confidence > 0.7)
-    top_up = results_sorted[:10]
-    # Top 10 Abwärts (restliche niedrigste confidence)
-    bottom_down = results_sorted[-10:]
-    return top_up, bottom_down
+# Dummy-Funktion zur Simulation von Chart-Pattern Analyse
+def generate_dummy_analysis(ticker):
+    patterns = ["Head and Shoulders", "Double Top", "Double Bottom", "Rising Wedge", "Falling Wedge",
+                "Triangle", "Rectangle", "Cup and Handle", "Bullish Flag", "Bearish Flag", "Inverse Head and Shoulders"]
+    top_patterns = random.sample(patterns, k=random.randint(1, 3))
+    confidence = round(random.uniform(0.6, 0.99), 2)
+    return {"ticker": ticker, "name": ASSET_NAMES.get(ticker, ticker), "patterns": top_patterns, "confidence": confidence}
+
+def analyze_assets():
+    # Liste der Assets aus prognose.txt laden
+    assets = []
+    with open("prognose.txt", "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line == "" or line.startswith("#"):
+                continue
+            ticker = line.split()[0]  # nur der Ticker, Kommentar ignorieren
+            assets.append(ticker)
+
+    results = [generate_dummy_analysis(t) for t in assets]
+    return results
+
+def save_results(results, filename="analysis_results.json"):
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump({"timestamp": str(datetime.utcnow()), "results": results}, f, ensure_ascii=False, indent=2)
+
+if __name__ == "__main__":
+    results = analyze_assets()
+    save_results(results)
+    print("✅ Analyse abgeschlossen und gespeichert in 'analysis_results.json'")
