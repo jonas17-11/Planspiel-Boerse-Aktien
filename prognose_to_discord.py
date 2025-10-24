@@ -6,24 +6,38 @@ from analyzer import get_analysis
 
 WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
 
-# --- Diagramm-Erstellung ---
-def plot_prediction(df, forecast, title):
-    plt.figure(figsize=(6,3))
-    plt.plot(df.index, df["Close"], color="royalblue", label="Realer Kurs")
-    if forecast is not None:
-        plt.plot(forecast.index, forecast["Predicted"], color="crimson", linestyle="--", label="Prognose")
-    plt.title(title, fontsize=10)
-    plt.xlabel("Datum", fontsize=7)
-    plt.ylabel("Preis", fontsize=7)
-    plt.legend(fontsize=6)
-    plt.grid(alpha=0.3)
+def plot_chart(df, forecast, name):
+    plt.figure(figsize=(8, 4))
+    plt.plot(df.index, df['Close'], label='Historisch', color='blue')
+    plt.plot(forecast.index, forecast['Predicted'], label='Prognose', color='red', linestyle='--')
+    plt.title(f"{name} Kurs & Prognose")
+    plt.xlabel("Datum")
+    plt.ylabel("Preis")
+    plt.legend()
     plt.tight_layout()
-
+    
+    # In Bytes speichern für Discord Upload
     buf = io.BytesIO()
-    plt.savefig(buf, format="png", dpi=150)
-    buf.seek(0)
+    plt.savefig(buf, format='png')
     plt.close()
+    buf.seek(0)
     return buf
+
+def build_discord_message(analysis):
+    # Sortiere nach predicted_change
+    sorted_analysis = sorted(analysis, key=lambda x: x['predicted_change'], reverse=True)
+    top_up = sorted_analysis[:10]
+    top_down = sorted_analysis[-10:]
+
+    message = "**📊 Top 10 Steigende Assets:**\n"
+    for item in top_up:
+        message += f"- **{item['name']}**: {item['pattern']} ({item['predicted_change']:.2f}%)\n"
+
+    message += "\n**📉 Top 10 Fallende Assets:**\n"
+    for item in reversed(top_down):  # Absteigend sortieren
+        message += f"- **{item['name']}**: {item['pattern']} ({item['predicted_change']:.2f}%)\n"
+
+    return message, top_up + top_down
 
 def post_to_discord():
     analysis = get_analysis()
@@ -31,33 +45,25 @@ def post_to_discord():
         print("Keine Analyse-Ergebnisse.")
         return
 
-    top_up = sorted([a for a in analysis if a["predicted_change"] > 0],
-                    key=lambda x: x["predicted_change"], reverse=True)[:10]
-    top_down = sorted([a for a in analysis if a["predicted_change"] < 0],
-                      key=lambda x: x["predicted_change"])[:10]
+    message, chart_assets = build_discord_message(analysis)
 
-    def send_section(title, assets):
-        content = f"**{title}**\n\n"
-        for a in assets:
-            direction = "📈" if a["predicted_change"] > 0 else "📉"
-            content += f"{direction} **{a['name']}** ({a['ticker']})\n"
-            content += f"🧩 Pattern: {a['pattern']}\n"
-            content += f"🎯 Zuverlässigkeit: {a['confidence']}%\n"
-            content += f"📊 Prognoseänderung: {'+' if a['predicted_change']>0 else ''}{a['predicted_change']:.2f}%\n\n"
+    # Discord Webhook: Text senden
+    payload = {"content": message}
+    response = requests.post(WEBHOOK_URL, json=payload)
+    if response.status_code == 204:
+        print("Text erfolgreich in Discord gesendet ✅")
+    else:
+        print(f"Fehler beim Senden: {response.status_code} {response.text}")
 
-        files = []
-        for a in assets:
-            buf = plot_prediction(a["df"], a["forecast"], f"{a['name']} – {a['pattern']}")
-            files.append(("file", (f"{a['ticker']}.png", buf, "image/png")))
-
-        response = requests.post(WEBHOOK_URL, data={"content": content}, files=files)
-        if response.status_code in (200, 204):
-            print(f"✅ {title} erfolgreich gesendet.")
+    # Charts als Bild hochladen (Top 5 steigende + fallende)
+    for item in chart_assets[:5]:
+        buf = plot_chart(item['df'], item['forecast'], item['name'])
+        files = {'file': (f"{item['ticker']}.png", buf, 'image/png')}
+        response = requests.post(WEBHOOK_URL, files=files)
+        if response.status_code == 204:
+            print(f"Chart {item['name']} erfolgreich gesendet ✅")
         else:
-            print(f"❌ Fehler: {response.status_code} {response.text}")
-
-    send_section("📈 **Top 10 – Wahrscheinliche Aufsteiger**", top_up)
-    send_section("📉 **Top 10 – Wahrscheinliche Absteiger**", top_down)
+            print(f"Fehler beim Senden Chart {item['name']}: {response.status_code} {response.text}")
 
 if __name__ == "__main__":
     post_to_discord()
