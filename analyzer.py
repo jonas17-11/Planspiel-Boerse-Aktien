@@ -1,9 +1,9 @@
 import yfinance as yf
 import pandas as pd
+import matplotlib.pyplot as plt
+import os
 
-# --- Mapping Ticker -> Ausgeschriebener Name ---
 ASSET_NAMES = {
-    # Währungen (Forex)
     "EURUSD": "Euro / US-Dollar",
     "USDJPY": "US-Dollar / Japanischer Yen",
     "GBPUSD": "Britisches Pfund / US-Dollar",
@@ -27,80 +27,10 @@ ASSET_NAMES = {
     "GBPAUD": "Britisches Pfund / Australischer Dollar",
     "EURAUD": "Euro / Australischer Dollar",
     "EURCAD": "Euro / Kanadischer Dollar",
-    # Edelmetalle & Rohstoffe
-    "XAUUSD": "Gold",
-    "XAGUSD": "Silber",
-    "XPTUSD": "Platin",
-    "XPDUSD": "Palladium",
-    "WTI": "Rohöl (West Texas)",
-    "BRENT": "Brent-Öl",
-    "NG=F": "Erdgas",
-    "HG=F": "Kupfer",
-    "SI=F": "Silber (Futures)",
-    "GC=F": "Gold (Futures)",
-    "CL=F": "Crude Oil (Futures)",
-    "PL=F": "Platin (Futures)",
-    "PA=F": "Palladium (Futures)",
-    "ZC=F": "Mais (Futures)",
-    "ZS=F": "Sojabohnen (Futures)",
-    "ZR=F": "Weizen (Futures)",
-    "KC=F": "Kaffee",
-    "SB=F": "Zucker",
-    "CT=F": "Baumwolle",
-    # Indizes
-    "^GSPC": "S&P 500",
-    "^DJI": "Dow Jones",
-    "^IXIC": "Nasdaq 100",
-    "^GDAXI": "DAX 40",
-    "^FCHI": "CAC 40",
-    "^FTSE": "FTSE 100",
-    "^N225": "Nikkei 225",
-    "^HSI": "Hang Seng (Hong Kong)",
-    "000001.SS": "Shanghai Composite",
-    "^BVSP": "Bovespa",
-    "^GSPTSE": "TSX Kanada",
-    "^SSMI": "SMI Schweiz",
-    "^AS51": "ASX 200 Australien",
-    "^MXX": "IPC Mexiko",
-    "^STOXX50E": "Euro Stoxx 50",
-    "^IBEX": "IBEX 35 Spanien",
-    "^NSEI": "Nifty 50 Indien",
-    # Kryptowährungen
-    "BTC-USD": "Bitcoin",
-    "ETH-USD": "Ethereum",
-    "BNB-USD": "Binance Coin",
-    "SOL-USD": "Solana",
-    "XRP-USD": "Ripple",
-    "ADA-USD": "Cardano",
-    "DOGE-USD": "Dogecoin",
-    "DOT-USD": "Polkadot",
-    "AVAX-USD": "Avalanche",
-    "LTC-USD": "Litecoin",
-    "TRX-USD": "Tron",
-    "LINK-USD": "Chainlink",
-    "ATOM-USD": "Cosmos",
-    "MATIC-USD": "Polygon",
-    "UNI-USD": "Uniswap",
-    "EOS-USD": "EOS",
-    "FTT-USD": "FTX Token",
-    "ALGO-USD": "Algorand",
-    "XTZ-USD": "Tezos",
-    "NEO-USD": "NEO",
-    "AAVE-USD": "Aave",
-    "COMP-USD": "Compound",
-    "MKR-USD": "Maker",
-    "SUSHI-USD": "SushiSwap",
-    "FIL-USD": "Filecoin",
-    "ICP-USD": "Internet Computer",
-    "LUNA-USD": "Terra",
-    "CEL-USD": "Celsius",
-    "RVN-USD": "Ravencoin",
-    "KSM-USD": "Kusama",
-    "ENJ-USD": "Enjin Coin",
-    "CHZ-USD": "Chiliz"
+    # Weitere Assets hier...
 }
 
-# --- Assets aus prognose.txt laden ---
+# Assets aus prognose.txt
 with open("prognose.txt", "r") as f:
     assets = [line.split()[0] for line in f if line.strip() and not line.startswith("#")]
 
@@ -127,27 +57,43 @@ def analyze_pattern(df):
     change = float((end - start) / start)
 
     if change > 0.02:
-        return "Aufwärts-Trend 📈", round(change*100, 2)
+        return "Aufwärts-Trend 📈", round(change*100,2)
     elif change < -0.02:
-        return "Abwärts-Trend 📉", round(change*100, 2)
+        return "Abwärts-Trend 📉", round(change*100,2)
     else:
-        return "Seitwärts-Trend ➖", round(change*100, 2)
+        return "Seitwärts-Trend ➖", round(change*100,2)
+
+def plot_asset(df, ticker):
+    plt.figure(figsize=(8,4))
+    plt.plot(df.index, df['Close'], marker='o', linestyle='-', color='blue')
+    plt.title(f"{ASSET_NAMES.get(ticker,ticker)} - Kursverlauf")
+    plt.xlabel("Datum")
+    plt.ylabel("Preis")
+    plt.grid(True)
+    # Speichern als Bild
+    filename = f"charts/{ticker}.png"
+    os.makedirs("charts", exist_ok=True)
+    plt.savefig(filename)
+    plt.close()
+    return filename
 
 def get_analysis():
     results = []
     for ticker in assets:
         df = fetch_data(ticker)
         pattern, confidence = analyze_pattern(df)
+        chart_file = plot_asset(df, ticker) if df is not None else None
         if pattern:
             results.append({
                 "ticker": ticker,
-                "name": ASSET_NAMES.get(ticker, ticker),
+                "name": ASSET_NAMES.get(ticker,ticker),
                 "pattern": pattern,
-                "confidence": confidence
+                "confidence": confidence,
+                "chart": chart_file
             })
     return results
 
 if __name__ == "__main__":
     analysis = get_analysis()
     for a in analysis:
-        print(f"{a['name']}: {a['pattern']} ({a['confidence']}%)")
+        print(f"{a['name']}: {a['pattern']} ({a['confidence']}%) - Chart: {a['chart']}")
