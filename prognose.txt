@@ -1,67 +1,67 @@
 # --- Währungen (Forex) ---
-EUR-USD
-USD-JPY
-GBP-USD
-AUD-USD
-USD-CAD
-USD-CHF
-NZD-USD
-EUR-GBP
-EUR-JPY
-EUR-CHF
-GBP-JPY
-AUD-JPY
-CHF-JPY
-EUR-NZD
-USD-NOK
-USD-DKK
-USD-SEK
-USD-TRY
-USD-MXN
-USD-CNH
-GBP-AUD
-EUR-AUD
-EUR-CAD
+EURUSD
+USDJPY
+GBPUSD
+AUDUSD
+USDCAD
+USDCHF
+NZDUSD
+EURGBP
+EURJPY
+EURCHF
+GBPJPY
+AUDJPY
+CHFJPY
+EURNZD
+USDNOK
+USDDKK
+USDSEK
+USDTRY
+USDMXN
+USDCNH
+GBPAUD
+EURAUD
+EURCAD
 
 # --- Edelmetalle & Rohstoffe ---
-XAU-USD    # Gold
-XAG-USD    # Silber
-XPT-USD    # Platin
-XPD-USD    # Palladium
-WTI        # Rohöl (West Texas)
-BRENT      # Brent-Öl
-NG=F       # Erdgas
-HG=F       # Kupfer
-SI=F       # Silber (Futures)
-GC=F       # Gold (Futures)
-CL=F       # Crude Oil (Futures)
-PL=F       # Platin (Futures)
-PA=F       # Palladium (Futures)
-ZC=F       # Mais (Futures)
-ZS=F       # Sojabohnen (Futures)
-ZR=F       # Weizen (Futures)
-KC=F       # Kaffee
-SB=F       # Zucker
-CT=F       # Baumwolle
+XAUUSD    # Gold
+XAGUSD    # Silber
+XPTUSD    # Platin
+XPDUSD    # Palladium
+WTI       # Rohöl (West Texas)
+BRENT     # Brent-Öl
+NG=F      # Erdgas
+HG=F      # Kupfer
+SI=F      # Silber (Futures)
+GC=F      # Gold (Futures)
+CL=F      # Crude Oil (Futures)
+PL=F      # Platin (Futures)
+PA=F      # Palladium (Futures)
+ZC=F      # Mais (Futures)
+ZS=F      # Sojabohnen (Futures)
+ZR=F      # Weizen (Futures)
+KC=F      # Kaffee
+SB=F      # Zucker
+CT=F      # Baumwolle
 
 # --- Indizes ---
-^GSPC      # S&P 500
-^DJI       # Dow Jones
-^IXIC      # Nasdaq 100
-^GDAXI     # DAX 40
-^FCHI      # CAC 40
-^FTSE      # FTSE 100
-^N225      # Nikkei 225
-^HSI       # Hang Seng (Hong Kong)
-000001.SS  # Shanghai Composite
-^BVSP      # Bovespa
-^GSPTSE    # TSX Kanada
-^SSMI      # SMI Schweiz
-^AS51      # ASX 200 Australien
-^MXX       # IPC Mexiko
-^STOXX50E  # Euro Stoxx 50
-^IBEX      # IBEX 35 Spanien
-^NSEI      # Nifty 50 Indien
+^GSPC       # S&P 500
+^DJI        # Dow Jones
+^IXIC       # Nasdaq 100
+^GDAXI      # DAX 40
+^FCHI       # CAC 40
+^FTSE       # FTSE 100
+^N225       # Nikkei 225
+^HSI        # Hang Seng (Hong Kong)
+000001.SS   # Shanghai Composite
+^BVSP       # Bovespa
+^GSPTSE     # TSX Kanada
+^SSMI       # SMI Schweiz
+^AS51       # ASX 200 Australien
+^MXX        # IPC Mexiko
+^STOXX50E   # Euro Stoxx 50
+^IBEX       # IBEX 35 Spanien
+^NSEI       # Nifty 50 Indien
 
 # --- Kryptowährungen ---
 BTC-USD    # Bitcoin
@@ -91,3 +91,8 @@ SUSHI-USD  # SushiSwap
 FIL-USD    # Filecoin
 ICP-USD    # Internet Computer
 LUNA-USD   # Terra
+CEL-USD    # Celsius
+RVN-USD    # Ravencoin
+KSM-USD    # Kusama
+ENJ-USD    # Enjin Coin
+CHZ-USD    # Chiliz
