@@ -126,7 +126,7 @@ def main():
         ai_summary = generate_ai_summary(new_important_news)
         now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-        message = f"🌍 **Extrem wichtige Wirtschaftsnachrichten ({now})**\n\n"
+        message = f"📈 **Neue relevante Finanznews ({now})**\n\n"
         for n in new_important_news[:5]:
             message += f"• **[{n['title']}]({n['link']})**\n🔹 Quelle: {n['source']}\n\n"
 
