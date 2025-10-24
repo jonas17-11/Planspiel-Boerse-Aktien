@@ -6,7 +6,6 @@ WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
 if not WEBHOOK_URL:
     raise ValueError("❌ PROGNOSE_WEBHOOK Secret nicht gefunden. Bitte in GitHub Secrets setzen.")
 
-# --- Helper für Farb-Formatierung ---
 def color_pattern(line, trend_strength):
     """Fügt grün für bullish und rot für bearish Patterns hinzu"""
     if trend_strength > 0:
@@ -15,9 +14,11 @@ def color_pattern(line, trend_strength):
         return f"- {line}"  # rot
 
 def format_message():
-    raw_report = run_analysis_patterns()
-    lines = raw_report.split("\n")
+    report = run_analysis_patterns()
+    if not report or report.strip() == "":
+        return "❌ Keine Assets oder Patterns erkannt. Bitte prüfen Sie die Ticker in prognose.txt oder die Pattern-Erkennung."
 
+    lines = report.split("\n")
     formatted_lines = ["```diff"]
     for line in lines:
         if line.startswith("📈") or line.startswith("📉"):
@@ -26,13 +27,16 @@ def format_message():
             symbol, rest = line.split(":", 1)
             if "|" in rest:
                 patterns, confidence = rest.split("|")
-                patterns = patterns.strip()  # nur Pattern-Namen
+                patterns = patterns.strip()
                 confidence = confidence.strip()
-                trend_strength = float(confidence.split()[0])
-                colored_line = color_pattern(f"**{symbol.strip()}**: {patterns} | 🔮 {confidence}", trend_strength)
+                try:
+                    trend_strength = float(confidence.split()[0])
+                except:
+                    trend_strength = 1  # Default, falls Parsing fehlschlägt
+                colored_line = color_pattern(f"{symbol.strip()}: {patterns} | 🔮 {confidence}", trend_strength)
                 formatted_lines.append(colored_line)
             else:
-                formatted_lines.append(line)
+                formatted_lines.append(f"{symbol.strip()}: {rest.strip()}")
         else:
             formatted_lines.append(line)
     formatted_lines.append("```")
