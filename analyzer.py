@@ -1,9 +1,10 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
+from sklearn.linear_model import LinearRegression
 from datetime import datetime, timedelta
 
-# 🔹 Assets laden (aus prognose.txt)
+# --- Ticker laden ---
 def load_assets(filename="prognose.txt"):
     assets = []
     with open(filename, "r", encoding="utf-8") as f:
@@ -28,8 +29,8 @@ with open("prognose.txt", "r", encoding="utf-8") as f:
 
 assets = load_assets()
 
-# 🔹 Kursdaten abrufen
-def fetch_data(ticker, period="1mo", interval="1h"):
+# --- Kursdaten laden ---
+def fetch_data(ticker, period="3mo", interval="1d"):
     try:
         df = yf.download(ticker, period=period, interval=interval, progress=False)
         df.dropna(inplace=True)
@@ -38,55 +39,71 @@ def fetch_data(ticker, period="1mo", interval="1h"):
         print(f"Fehler bei {ticker}: {e}")
         return None
 
-# 🔹 Musteranalyse (Pattern Detection)
-def analyze_pattern(df):
-    if df is None or len(df) < 10:
-        return None, 0
+# --- Pattern-Analyse & Prognose ---
+def analyze_and_predict(df, days_ahead=5):
+    if df is None or len(df) < 30:
+        return None, None, None, None
 
-    df["Change"] = df["Close"].pct_change()
-    df["SMA5"] = df["Close"].rolling(5).mean()
+    # Regressionsmodell für Trendanalyse
+    df = df.copy()
+    df["t"] = np.arange(len(df))
+    X = df[["t"]]
+    y = df["Close"]
+
+    model = LinearRegression()
+    model.fit(X, y)
+
+    trend = model.coef_[0]
+    predicted_values = model.predict([[len(df) + i] for i in range(days_ahead)])
+
+    # Erkennen von Patterns
     df["SMA20"] = df["Close"].rolling(20).mean()
-
-    recent = df.iloc[-1]
-    prev = df.iloc[-5:-1]
-
+    df["SMA50"] = df["Close"].rolling(50).mean()
     pattern = "Seitwärtsbewegung"
     confidence = 50
 
-    if recent["Close"] > recent["SMA20"] and all(prev["Close"] < prev["SMA20"]):
-        pattern = "Trendwende nach oben"
+    if df["SMA20"].iloc[-1] > df["SMA50"].iloc[-1] and trend > 0:
+        pattern = "Aufwärtstrend bestätigt ✅"
         confidence = 85
-    elif recent["Close"] < recent["SMA20"] and all(prev["Close"] > prev["SMA20"]):
-        pattern = "Trendwende nach unten"
+    elif df["SMA20"].iloc[-1] < df["SMA50"].iloc[-1] and trend < 0:
+        pattern = "Abwärtstrend bestätigt ⚠️"
         confidence = 85
-    elif df["Change"].iloc[-5:].mean() > 0.01:
-        pattern = "Starker Aufwärtstrend"
-        confidence = 90
-    elif df["Change"].iloc[-5:].mean() < -0.01:
-        pattern = "Starker Abwärtstrend"
-        confidence = 90
-    elif abs(df["Change"].iloc[-5:].mean()) < 0.002:
-        pattern = "Seitwärtsbewegung"
-        confidence = 60
+    elif trend > 0 and df["Close"].iloc[-1] > df["SMA20"].iloc[-1]:
+        pattern = "Möglicher Breakout 🚀"
+        confidence = 75
+    elif trend < 0 and df["Close"].iloc[-1] < df["SMA20"].iloc[-1]:
+        pattern = "Möglicher Breakdown 🔻"
+        confidence = 75
 
-    return pattern, confidence
+    # Veränderung berechnen
+    change_percent = ((predicted_values[-1] - df["Close"].iloc[-1]) / df["Close"].iloc[-1]) * 100
 
-# 🔹 Gesamtanalyse
+    # Prognosedaten anfügen
+    future_dates = [df.index[-1] + timedelta(days=i+1) for i in range(days_ahead)]
+    forecast_df = pd.DataFrame({"Date": future_dates, "Predicted": predicted_values})
+    forecast_df.set_index("Date", inplace=True)
+
+    return pattern, confidence, change_percent, forecast_df
+
+# --- Gesamtanalyse ---
 def get_analysis():
     results = []
     for ticker in assets:
         df = fetch_data(ticker)
-        if df is None or len(df) < 10:
+        if df is None:
             continue
 
-        pattern, confidence = analyze_pattern(df)
-        if pattern:
-            results.append({
-                "ticker": ticker,
-                "name": ASSET_NAMES.get(ticker, ticker),
-                "pattern": pattern,
-                "confidence": confidence,
-                "change": (df["Close"].iloc[-1] / df["Close"].iloc[0] - 1) * 100,
-                "df": df
-            })
+        pattern, confidence, change, forecast = analyze_and_predict(df)
+        if pattern is None:
+            continue
+
+        results.append({
+            "ticker": ticker,
+            "name": ASSET_NAMES.get(ticker, ticker),
+            "pattern": pattern,
+            "confidence": confidence,
+            "predicted_change": change,
+            "df": df,
+            "forecast": forecast
+        })
     return results
