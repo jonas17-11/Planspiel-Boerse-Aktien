@@ -4,36 +4,36 @@ import pandas as pd
 # --- Mapping Ticker -> Ausgeschriebener Name ---
 ASSET_NAMES = {
     # Währungen (Forex)
-    "EURUSD=X": "Euro / US-Dollar",
-    "USDJPY=X": "US-Dollar / Japanischer Yen",
-    "GBPUSD=X": "Britisches Pfund / US-Dollar",
-    "AUDUSD=X": "Australischer Dollar / US-Dollar",
-    "USDCAD=X": "US-Dollar / Kanadischer Dollar",
-    "USDCHF=X": "US-Dollar / Schweizer Franken",
-    "NZDUSD=X": "Neuseeland-Dollar / US-Dollar",
-    "EURGBP=X": "Euro / Britisches Pfund",
-    "EURJPY=X": "Euro / Japanischer Yen",
-    "EURCHF=X": "Euro / Schweizer Franken",
-    "GBPJPY=X": "Britisches Pfund / Japanischer Yen",
-    "AUDJPY=X": "Australischer Dollar / Japanischer Yen",
-    "CHFJPY=X": "Schweizer Franken / Japanischer Yen",
-    "EURNZD=X": "Euro / Neuseeland-Dollar",
-    "USDNOK=X": "US-Dollar / Norwegische Krone",
-    "USDDKK=X": "US-Dollar / Dänische Krone",
-    "USDSEK=X": "US-Dollar / Schwedische Krone",
-    "USDTRY=X": "US-Dollar / Türkische Lira",
-    "USDMXN=X": "US-Dollar / Mexikanischer Peso",
-    "USDCNH=X": "US-Dollar / Chinesischer Yuan",
-    "GBPAUD=X": "Britisches Pfund / Australischer Dollar",
-    "EURAUD=X": "Euro / Australischer Dollar",
-    "EURCAD=X": "Euro / Kanadischer Dollar",
+    "EURUSD": "Euro / US-Dollar",
+    "USDJPY": "US-Dollar / Japanischer Yen",
+    "GBPUSD": "Britisches Pfund / US-Dollar",
+    "AUDUSD": "Australischer Dollar / US-Dollar",
+    "USDCAD": "US-Dollar / Kanadischer Dollar",
+    "USDCHF": "US-Dollar / Schweizer Franken",
+    "NZDUSD": "Neuseeland-Dollar / US-Dollar",
+    "EURGBP": "Euro / Britisches Pfund",
+    "EURJPY": "Euro / Japanischer Yen",
+    "EURCHF": "Euro / Schweizer Franken",
+    "GBPJPY": "Britisches Pfund / Japanischer Yen",
+    "AUDJPY": "Australischer Dollar / Japanischer Yen",
+    "CHFJPY": "Schweizer Franken / Japanischer Yen",
+    "EURNZD": "Euro / Neuseeland-Dollar",
+    "USDNOK": "US-Dollar / Norwegische Krone",
+    "USDDKK": "US-Dollar / Dänische Krone",
+    "USDSEK": "US-Dollar / Schwedische Krone",
+    "USDTRY": "US-Dollar / Türkische Lira",
+    "USDMXN": "US-Dollar / Mexikanischer Peso",
+    "USDCNH": "US-Dollar / Chinesischer Yuan",
+    "GBPAUD": "Britisches Pfund / Australischer Dollar",
+    "EURAUD": "Euro / Australischer Dollar",
+    "EURCAD": "Euro / Kanadischer Dollar",
     # Edelmetalle & Rohstoffe
-    "XAUUSD=X": "Gold",
-    "XAGUSD=X": "Silber",
-    "XPTUSD=X": "Platin",
-    "XPDUSD=X": "Palladium",
-    "WTI=X": "Rohöl (West Texas)",
-    "BRENT=X": "Brent-Öl",
+    "XAUUSD": "Gold",
+    "XAGUSD": "Silber",
+    "XPTUSD": "Platin",
+    "XPDUSD": "Palladium",
+    "WTI": "Rohöl (West Texas)",
+    "BRENT": "Brent-Öl",
     "NG=F": "Erdgas",
     "HG=F": "Kupfer",
     "SI=F": "Silber (Futures)",
@@ -107,40 +107,34 @@ with open("prognose.txt", "r") as f:
 def fetch_data(ticker, period="1mo", interval="1d"):
     try:
         df = yf.download(ticker, period=period, interval=interval, progress=False)
-        if df.empty:
-            print(f"Keine Daten für {ticker}")
-            return None
         return df
     except Exception as e:
         print(f"Fehler bei {ticker}: {e}")
         return None
 
 def analyze_pattern(df):
-    """Einfache Trend-Erkennung: Aufwärts, Abwärts, Seitwärts"""
-    if df is None or df.empty:
+    """
+    Trendanalyse:
+    Berechnet pro Asset den prozentualen Veränderung von Start bis Ende.
+    """
+    if df is None or df.empty or "Close" not in df.columns:
         return None, 0
 
-    close = df['Close'].dropna()
-    if close.empty:
-        return None, 0
+    start = df['Close'].iloc[0]
+    end = df['Close'].iloc[-1]
+    change = ((end - start) / start) * 100  # Prozentuale Veränderung
 
-    start = float(close.iloc[0])
-    end = float(close.iloc[-1])
-    change = (end - start) / start
-
-    if change > 0.02:
-        return "Aufwärts-Trend 📈", round(change*100, 2)
-    elif change < -0.02:
-        return "Abwärts-Trend 📉", round(change*100, 2)
+    if change > 2:
+        return "Aufwärts-Trend 📈", round(change, 2)
+    elif change < -2:
+        return "Abwärts-Trend 📉", round(change, 2)
     else:
-        return "Seitwärts-Trend ➖", round(change*100, 2)
+        return "Seitwärts-Trend ➖", round(change, 2)
 
 def get_analysis():
     results = []
     for ticker in assets:
         df = fetch_data(ticker)
-        if df is None:
-            continue
         pattern, confidence = analyze_pattern(df)
         if pattern:
             results.append({
