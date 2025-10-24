@@ -1,58 +1,32 @@
-import requests
 from analyzer import run_analysis_patterns
 import os
+import requests
+from datetime import datetime
 
-WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
-if not WEBHOOK_URL:
-    raise ValueError("❌ PROGNOSE_WEBHOOK Secret nicht gefunden. Bitte in GitHub Secrets setzen.")
-
-def color_pattern(line, trend_strength):
-    """Fügt grün für bullish und rot für bearish Patterns hinzu"""
-    if trend_strength > 0:
-        return f"+ {line}"  # grün
-    else:
-        return f"- {line}"  # rot
+WEBHOOK_URL = os.environ.get("PROGNOSE_WEBHOOK")
 
 def format_message():
-    report = run_analysis_patterns()
-    if not report or report.strip() == "":
-        return "❌ Keine Assets oder Patterns erkannt. Bitte prüfen Sie die Ticker in prognose.txt oder die Pattern-Erkennung."
+    top_up, top_down = run_analysis_patterns()
+    now = datetime.utcnow().strftime("%d.%m.%Y %H:%M Uhr UTC")
+    message = f"📊 Top-Picks Chart-Pattern Analyse (höchste Wahrscheinlichkeit) ({now})\n\n"
 
-    lines = report.split("\n")
-    formatted_lines = ["```diff"]
-    for line in lines:
-        if line.startswith("📈") or line.startswith("📉") or line.startswith("📊"):
-            formatted_lines.append(f"\n{line}")
-        elif ":" in line and "| 🔮" in line:
-            symbol, rest = line.split(":", 1)
-            patterns, confidence = rest.split("|")
-            patterns = patterns.strip()
-            confidence = confidence.strip()
-            try:
-                trend_strength = float(confidence)
-            except:
-                trend_strength = 1
-            colored_line = color_pattern(f"{symbol.strip()}: {patterns} | 🔮 {confidence}", trend_strength)
-            formatted_lines.append(colored_line)
-        else:
-            formatted_lines.append(line)
-    formatted_lines.append("```")
-    return "\n".join(formatted_lines)
+    message += "Aufwärtspatterns:\n"
+    for r in top_up:
+        message += f"{r['symbol']}: {', '.join(r['patterns'])} | {r['confidence']:.2f}\n"
+
+    message += "\nAbwärtspatterns:\n"
+    for r in top_down:
+        message += f"{r['symbol']}: {', '.join(r['patterns'])} | {r['confidence']:.2f}\n"
+
+    return message
 
 def post_to_discord():
     message = format_message()
-
-    # Discord limitiert Nachrichten auf 2000 Zeichen → splitten
-    chunk_size = 1900
-    payloads = [message[i:i+chunk_size] for i in range(0, len(message), chunk_size)]
-
-    for idx, chunk in enumerate(payloads, start=1):
-        r = requests.post(WEBHOOK_URL, json={"content": chunk})
-        if r.status_code not in [200, 204]:
-            print(f"❌ Fehler beim Senden von Chunk {idx}: {r.status_code} - {r.text}")
-        else:
-            print(f"✅ Chunk {idx} erfolgreich an Discord gesendet.")
+    if WEBHOOK_URL:
+        requests.post(WEBHOOK_URL, json={"content": message})
+        print("📤 Top-Picks Chart-Pattern Prognose an Discord gesendet!")
+    else:
+        print("❌ Webhook nicht gefunden!")
 
 if __name__ == "__main__":
-    print("📤 Sende Top-Picks Chart-Pattern Prognose an Discord...")
     post_to_discord()
