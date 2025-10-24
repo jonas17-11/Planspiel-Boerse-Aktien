@@ -1,0 +1,65 @@
+# --- Währungen (Forex) ---
+EURUSD
+USDJPY
+GBPUSD
+AUDUSD
+USDCAD
+USDCHF
+NZDUSD
+EURGBP
+EURJPY
+EURCHF
+GBPJPY
+AUDJPY
+CHFJPY
+EURNZD
+USDNOK
+USDDKK
+USDSEK
+USDTRY
+USDMXN
+USDCNH
+
+# --- Edelmetalle & Rohstoffe ---
+XAUUSD  # Gold
+XAGUSD  # Silber
+XPTUSD  # Platin
+XPDUSD  # Palladium
+WTI     # Rohöl (West Texas)
+BRENT   # Brent-Öl
+NG=F    # Erdgas
+HG=F    # Kupfer
+SI=F    # Silber (Futures)
+GC=F    # Gold (Futures)
+CL=F    # Crude Oil (Futures)
+
+# --- Indizes ---
+SPX500  # S&P 500
+DJI     # Dow Jones
+NAS100  # Nasdaq 100
+DAX40   # Deutscher Aktienindex
+CAC40   # Frankreich
+FTSE100 # Großbritannien
+NIKKEI225 # Japan
+HSI     # Hang Seng (Hong Kong)
+SSE     # Shanghai Composite
+BOVESPA # Brasilien
+TSX     # Kanada
+SMI     # Schweiz
+
+# --- Kryptowährungen ---
+BTCUSD  # Bitcoin
+ETHUSD  # Ethereum
+BNBUSD  # Binance Coin
+SOLUSD  # Solana
+XRPUSD  # Ripple
+ADAUSD  # Cardano
+DOGEUSD # Dogecoin
+DOTUSD  # Polkadot
+AVAXUSD # Avalanche
+LTCUSD  # Litecoin
+TRXUSD  # Tron
+LINKUSD # Chainlink
+ATOMUSD # Cosmos
+MATICUSD # Polygon
+UNIUSD  # Uniswap
