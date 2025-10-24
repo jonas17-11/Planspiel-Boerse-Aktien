@@ -1,6 +1,11 @@
 import yfinance as yf
 import numpy as np
 import datetime
+import os
+
+# Robuster Pfad zur Datei im Root
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE = os.path.join(SCRIPT_DIR, "prognose.txt")
 
 def analyze_trend(symbol):
     try:
@@ -35,7 +40,7 @@ def analyze_trend(symbol):
 
 
 def run_analysis():
-    with open("data/prognose.txt", "r", encoding="utf-8") as f:
+    with open(DATA_FILE, "r", encoding="utf-8") as f:
         symbols = [line.strip().split("#")[0].strip() for line in f if line.strip() and not line.startswith("#")]
 
     report = [f"📊 **Automatische Marktanalyse** ({datetime.datetime.now().strftime('%d.%m.%Y %H:%M')} Uhr)\n"]
