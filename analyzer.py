@@ -4,29 +4,29 @@ import pandas as pd
 # --- Mapping Ticker -> Ausgeschriebener Name ---
 ASSET_NAMES = {
     # Währungen (Forex)
-    "EURUSD": "Euro / US-Dollar",
-    "USDJPY": "US-Dollar / Japanischer Yen",
-    "GBPUSD": "Britisches Pfund / US-Dollar",
-    "AUDUSD": "Australischer Dollar / US-Dollar",
-    "USDCAD": "US-Dollar / Kanadischer Dollar",
-    "USDCHF": "US-Dollar / Schweizer Franken",
-    "NZDUSD": "Neuseeland-Dollar / US-Dollar",
-    "EURGBP": "Euro / Britisches Pfund",
-    "EURJPY": "Euro / Japanischer Yen",
-    "EURCHF": "Euro / Schweizer Franken",
-    "GBPJPY": "Britisches Pfund / Japanischer Yen",
-    "AUDJPY": "Australischer Dollar / Japanischer Yen",
-    "CHFJPY": "Schweizer Franken / Japanischer Yen",
-    "EURNZD": "Euro / Neuseeland-Dollar",
-    "USDNOK": "US-Dollar / Norwegische Krone",
-    "USDDKK": "US-Dollar / Dänische Krone",
-    "USDSEK": "US-Dollar / Schwedische Krone",
-    "USDTRY": "US-Dollar / Türkische Lira",
-    "USDMXN": "US-Dollar / Mexikanischer Peso",
-    "USDCNH": "US-Dollar / Chinesischer Yuan",
-    "GBPAUD": "Britisches Pfund / Australischer Dollar",
-    "EURAUD": "Euro / Australischer Dollar",
-    "EURCAD": "Euro / Kanadischer Dollar",
+    "EURUSD=X": "Euro / US-Dollar",
+    "USDJPY=X": "US-Dollar / Japanischer Yen",
+    "GBPUSD=X": "Britisches Pfund / US-Dollar",
+    "AUDUSD=X": "Australischer Dollar / US-Dollar",
+    "USDCAD=X": "US-Dollar / Kanadischer Dollar",
+    "USDCHF=X": "US-Dollar / Schweizer Franken",
+    "NZDUSD=X": "Neuseeland-Dollar / US-Dollar",
+    "EURGBP=X": "Euro / Britisches Pfund",
+    "EURJPY=X": "Euro / Japanischer Yen",
+    "EURCHF=X": "Euro / Schweizer Franken",
+    "GBPJPY=X": "Britisches Pfund / Japanischer Yen",
+    "AUDJPY=X": "Australischer Dollar / Japanischer Yen",
+    "CHFJPY=X": "Schweizer Franken / Japanischer Yen",
+    "EURNZD=X": "Euro / Neuseeland-Dollar",
+    "USDNOK=X": "US-Dollar / Norwegische Krone",
+    "USDDKK=X": "US-Dollar / Dänische Krone",
+    "USDSEK=X": "US-Dollar / Schwedische Krone",
+    "USDTRY=X": "US-Dollar / Türkische Lira",
+    "USDMXN=X": "US-Dollar / Mexikanischer Peso",
+    "USDCNH=X": "US-Dollar / Chinesischer Yuan",
+    "GBPAUD=X": "Britisches Pfund / Australischer Dollar",
+    "EURAUD=X": "Euro / Australischer Dollar",
+    "EURCAD=X": "Euro / Kanadischer Dollar",
     # Edelmetalle & Rohstoffe
     "XAUUSD": "Gold",
     "XAGUSD": "Silber",
@@ -106,17 +106,16 @@ with open("prognose.txt", "r") as f:
 
 def fetch_data(ticker, period="1mo", interval="1d"):
     try:
-        df = yf.download(ticker, period=period, interval=interval, progress=False)
+        df = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=True)
+        if df.empty:
+            return None
         return df
     except Exception as e:
         print(f"Fehler bei {ticker}: {e}")
         return None
 
 def analyze_pattern(df):
-    """
-    Dummy-Pattern-Erkennung:
-    Wir erkennen einfache Trends: 'up', 'down', 'sideways'
-    """
+    """Einfache Trend-Erkennung: Aufwärts, Abwärts, Seitwärts"""
     if df is None or df.empty:
         return None, 0
 
