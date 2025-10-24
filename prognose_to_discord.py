@@ -6,12 +6,12 @@ from analyzer import get_analysis
 
 WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
 
-# --- Chart zeichnen ---
+# --- Diagramm-Erstellung ---
 def plot_prediction(df, forecast, title):
     plt.figure(figsize=(6,3))
-    plt.plot(df.index, df["Close"], color="blue", label="Realer Kurs")
+    plt.plot(df.index, df["Close"], color="royalblue", label="Realer Kurs")
     if forecast is not None:
-        plt.plot(forecast.index, forecast["Predicted"], color="red", linestyle="--", label="Prognose")
+        plt.plot(forecast.index, forecast["Predicted"], color="crimson", linestyle="--", label="Prognose")
     plt.title(title, fontsize=10)
     plt.xlabel("Datum", fontsize=7)
     plt.ylabel("Preis", fontsize=7)
@@ -28,7 +28,7 @@ def plot_prediction(df, forecast, title):
 def post_to_discord():
     analysis = get_analysis()
     if not analysis:
-        print("Keine Analyseergebnisse.")
+        print("Keine Analyse-Ergebnisse.")
         return
 
     top_up = sorted([a for a in analysis if a["predicted_change"] > 0],
@@ -39,13 +39,15 @@ def post_to_discord():
     def send_section(title, assets):
         content = f"**{title}**\n\n"
         for a in assets:
-            content += f"**{a['name']}** ({a['ticker']})\n"
-            content += f"{a['pattern']} ({a['confidence']}%)\n"
-            content += f"📈 Prognose: {'+' if a['predicted_change']>0 else ''}{a['predicted_change']:.2f}%\n\n"
+            direction = "📈" if a["predicted_change"] > 0 else "📉"
+            content += f"{direction} **{a['name']}** ({a['ticker']})\n"
+            content += f"🧩 Pattern: {a['pattern']}\n"
+            content += f"🎯 Zuverlässigkeit: {a['confidence']}%\n"
+            content += f"📊 Prognoseänderung: {'+' if a['predicted_change']>0 else ''}{a['predicted_change']:.2f}%\n\n"
 
         files = []
         for a in assets:
-            buf = plot_prediction(a["df"], a["forecast"], f"{a['name']} ({a['pattern']})")
+            buf = plot_prediction(a["df"], a["forecast"], f"{a['name']} – {a['pattern']}")
             files.append(("file", (f"{a['ticker']}.png", buf, "image/png")))
 
         response = requests.post(WEBHOOK_URL, data={"content": content}, files=files)
