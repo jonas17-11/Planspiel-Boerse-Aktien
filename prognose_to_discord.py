@@ -3,7 +3,6 @@ from analyzer import run_analysis
 import os
 
 WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
-
 if not WEBHOOK_URL:
     raise ValueError("❌ PROGNOSE_WEBHOOK Secret nicht gefunden. Bitte in GitHub Secrets setzen.")
 
