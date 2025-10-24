@@ -1,23 +1,28 @@
 name: Hourly Prognose Bot
 
+# Schedule: jede volle Stunde von 6-20 Uhr UTC, Montag bis Freitag
 on:
   schedule:
-    - cron: "0 * * * *"  # jede volle Stunde
-  workflow_dispatch:
+    - cron: "0 6-20 * * 1-5"  # Minute 0, Stunde 6-20, Montag-Freitag
+  workflow_dispatch:          # manuelles Starten möglich
 
 jobs:
   send:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Run analysis and post
+
+      - name: Run market analysis and post to Discord
         env:
-          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK }}
+          PROGNOSE_WEBHOOK: ${{ secrets.PROGNOSE_WEBHOOK }}
         run: python prognose_to_discord.py
