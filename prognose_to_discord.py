@@ -21,22 +21,19 @@ def format_message():
     lines = report.split("\n")
     formatted_lines = ["```diff"]
     for line in lines:
-        if line.startswith("📈") or line.startswith("📉"):
+        if line.startswith("📈") or line.startswith("📉") or line.startswith("📊"):
             formatted_lines.append(f"\n{line}")
-        elif ":" in line:
+        elif ":" in line and "| 🔮" in line:
             symbol, rest = line.split(":", 1)
-            if "|" in rest:
-                patterns, confidence = rest.split("|")
-                patterns = patterns.strip()
-                confidence = confidence.strip()
-                try:
-                    trend_strength = float(confidence.split()[0])
-                except:
-                    trend_strength = 1  # Default, falls Parsing fehlschlägt
-                colored_line = color_pattern(f"{symbol.strip()}: {patterns} | 🔮 {confidence}", trend_strength)
-                formatted_lines.append(colored_line)
-            else:
-                formatted_lines.append(f"{symbol.strip()}: {rest.strip()}")
+            patterns, confidence = rest.split("|")
+            patterns = patterns.strip()
+            confidence = confidence.strip()
+            try:
+                trend_strength = float(confidence)
+            except:
+                trend_strength = 1
+            colored_line = color_pattern(f"{symbol.strip()}: {patterns} | 🔮 {confidence}", trend_strength)
+            formatted_lines.append(colored_line)
         else:
             formatted_lines.append(line)
     formatted_lines.append("```")
