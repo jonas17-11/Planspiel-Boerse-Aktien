@@ -20,7 +20,6 @@ ASSET_NAMES = {
     "EURCAD": "Euro / Kanadischer Dollar",
     "XAUUSD": "Gold", "XAGUSD": "Silber", "XPTUSD": "Platin", "XPDUSD": "Palladium",
     "WTI": "Rohöl (West Texas)", "BRENT": "Brent-Öl"
-    # Du kannst weitere Assets hinzufügen
 }
 
 # --- Assets aus prognose.txt ---
@@ -37,23 +36,48 @@ def fetch_data(ticker, period="7d", interval="1h"):
         print(f"Fehler bei {ticker}: {e}")
         return None
 
+# --- Candlestick-Mustererkennung ---
+def detect_candlestick_pattern(df):
+    if df is None or df.empty:
+        return "Keine Daten"
+
+    last = df.iloc[-1]
+    body = abs(last['Close'] - last['Open'])
+    candle_range = last['High'] - last['Low']
+
+    # Doji
+    if body <= 0.1 * candle_range:
+        return "Doji"
+    # Hammer
+    elif (last['Close'] > last['Open'] and (last['Low'] < last['Open'] - 2*body)):
+        return "Hammer"
+    # Shooting Star
+    elif (last['Open'] > last['Close'] and (last['High'] > last['Open'] + 2*body)):
+        return "Shooting Star"
+    # Engulfing
+    if len(df) >=2:
+        prev = df.iloc[-2]
+        if last['Close'] > last['Open'] and prev['Close'] < prev['Open']:
+            if last['Open'] < prev['Close'] and last['Close'] > prev['Open']:
+                return "Bullish Engulfing"
+        if last['Close'] < last['Open'] and prev['Close'] > prev['Open']:
+            if last['Open'] > prev['Close'] and last['Close'] < prev['Open']:
+                return "Bearish Engulfing"
+    return "Unbekannt"
+
 def analyze_pattern(df):
     if df is None or df.empty:
         return "Keine Daten", 0
     start = df["Close"].iloc[0]
     end = df["Close"].iloc[-1]
     change = (end - start) / start
-    if change > 0.002:
-        return "Aufwärts-Trend 📈", round(change*100,2)
-    elif change < -0.002:
-        return "Abwärts-Trend 📉", round(change*100,2)
-    else:
-        return "Seitwärts-Trend ➖", round(change*100,2)
+    pattern = detect_candlestick_pattern(df)
+    confidence = min(abs(change)*100*10, 100)  # skaliert auf max 100%
+    return pattern, round(confidence,2)
 
 def create_candlestick(df, ticker, forecast_steps=5):
     if df is None or df.empty:
         return None
-    # Prognose (einfach linear)
     last_price = float(df["Close"].iloc[-1])
     forecast = [last_price * (1 + 0.001*i) for i in range(1, forecast_steps+1)]
     future_index = [df.index[-1] + timedelta(hours=i) for i in range(1, forecast_steps+1)]
