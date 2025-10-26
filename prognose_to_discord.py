@@ -1,85 +1,75 @@
 import os
 import requests
-from analyzer import get_analysis
-import plotly.graph_objects as go
-import plotly.io as pio
-from PIL import Image
-import imgkit  # Zum Rendern von HTML zu Bild (alternativ selenium, hier als Beispiel)
+import matplotlib.pyplot as plt
+from analyzer import analyze_and_predict_all  # passt zu deinem analyzer.py
+from datetime import datetime
 
 WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
-CHART_DIR = "charts_html"
-IMG_DIR = "charts_img"
+IMAGE_DIR = "charts"  # Ordner für Diagramme
+os.makedirs(IMAGE_DIR, exist_ok=True)
 
-os.makedirs(CHART_DIR, exist_ok=True)
-os.makedirs(IMG_DIR, exist_ok=True)
+def save_chart(asset):
+    df = asset["df"]
+    forecast = asset["forecast"]
 
-def save_chart(item):
-    df = item['df']
-    forecast = item['forecast']
+    plt.figure(figsize=(10, 4))
+    plt.plot(df.index, df["Close"], label="Kurs", color="blue")
+    plt.plot(forecast.index, forecast["Predicted"], label="Prognose", color="red", linestyle="--")
+    plt.title(f"{asset['name']} - {asset['pattern']}")
+    plt.xlabel("Datum")
+    plt.ylabel("Preis")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
 
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=df.index, y=df['Close'],
-        mode='lines+markers',
-        name='Aktueller Kurs',
-        line=dict(color='green' if item['confidence'] > 0 else 'red')
-    ))
-    if forecast is not None and not forecast.empty:
-        fig.add_trace(go.Scatter(
-            x=forecast.index, y=forecast['Predicted'],
-            mode='lines+markers',
-            name='Prognose',
-            line=dict(color='red', dash='dash')
-        ))
+    filename = f"{IMAGE_DIR}/{asset['ticker']}.png"
+    plt.savefig(filename, bbox_inches="tight")
+    plt.close()
+    return filename
 
-    fig.update_layout(
-        title=f"{item['name']} - {item['pattern']}",
-        xaxis_title='Datum',
-        yaxis_title='Preis',
-        template='plotly_dark'
-    )
+def build_discord_message(analysis):
+    top_up = sorted(analysis, key=lambda x: x["change"], reverse=True)[:10]
+    top_down = sorted(analysis, key=lambda x: x["change"])[:10]
 
-    # Speichern als interaktive HTML-Datei
-    html_path = os.path.join(CHART_DIR, f"{item['ticker']}.html")
-    fig.write_html(html_path)
+    message = "**📈 Top 10 steigende Assets:**\n"
+    for item in top_up:
+        message += f"- **{item['name']}**: {item['pattern']} ({item['change']:.2f}%), Aktuell: {item['current']}\n"
 
-    # Speichern als PNG für Discord
-    img_path = os.path.join(IMG_DIR, f"{item['ticker']}.png")
-    pio.write_image(fig, img_path, format='png', scale=2)
-    return img_path, html_path
+    message += "\n**📉 Top 10 sinkende Assets:**\n"
+    for item in top_down:
+        message += f"- **{item['name']}**: {item['pattern']} ({item['change']:.2f}%), Aktuell: {item['current']}\n"
 
-def build_discord_message(top, flop):
-    message = "**📈 Top 10 steigende Assets:**\n```diff\n"
-    for item in top:
-        message += f"+ {item['name']}: {item['pattern']} ({item['confidence']}%)\n"
-    message += "```\n\n"
-
-    message += "**📉 Top 10 fallende Assets:**\n```diff\n"
-    for item in flop:
-        message += f"- {item['name']}: {item['pattern']} ({item['confidence']}%)\n"
-    message += "```\n"
-
-    message += "\n💹 Interaktive Charts (Hover für Details) sind lokal gespeichert oder können gehostet werden."
-    return message
+    message += f"\n_Stand: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}_"
+    return message, top_up + top_down  # Wir geben die Assets zurück, um Diagramme zu generieren
 
 def post_to_discord():
-    top, flop = get_analysis()
-    if not top and not flop:
+    analysis = analyze_and_predict_all()
+    if not analysis:
         print("Keine Analyse-Ergebnisse.")
         return
 
-    message = build_discord_message(top, flop)
-
-    files = []
-    for item in top + flop:
-        img_path, html_path = save_chart(item)
-        files.append(('file', (os.path.basename(img_path), open(img_path, 'rb'), 'image/png')))
-
-    response = requests.post(WEBHOOK_URL, data={"content": message}, files=files)
-    if response.status_code in [200, 204]:
-        print("Erfolgreich in Discord gesendet ✅")
+    message, assets_for_chart = build_discord_message(analysis)
+    
+    # Sende Nachricht
+    payload = {"content": message}
+    response = requests.post(WEBHOOK_URL, json=payload)
+    if response.status_code in (200, 204):
+        print("Text erfolgreich in Discord gesendet ✅")
     else:
         print(f"Fehler beim Senden: {response.status_code} {response.text}")
+
+    # Diagramme senden
+    for asset in assets_for_chart:
+        chart_file = save_chart(asset)
+        with open(chart_file, "rb") as f:
+            response = requests.post(
+                WEBHOOK_URL,
+                files={"file": f},
+                data={"content": f"📊 **{asset['name']} - {asset['pattern']}**"}
+            )
+            if response.status_code in (200, 204):
+                print(f"Diagramm für {asset['name']} gesendet ✅")
+            else:
+                print(f"Fehler beim Senden des Diagramms: {response.status_code}")
 
 if __name__ == "__main__":
     post_to_discord()
