@@ -1,47 +1,111 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import os
 
-# --- Alle Assets ---
-ASSETS = [
+# --- Mapping Ticker -> Ausgeschriebener Name ---
+ASSET_NAMES = {
     # Währungen (Forex)
-    "EURUSD=X","USDJPY=X","GBPUSD=X","AUDUSD=X","USDCAD=X","USDCHF=X",
-    "NZDUSD=X","EURGBP=X","EURJPY=X","EURCHF=X","GBPJPY=X","AUDJPY=X",
-    "CHFJPY=X","EURNZD=X","USDNOK=X","USDDKK=X","USDSEK=X","USDTRY=X",
-    "USDMXN=X","USDCNH=X","GBPAUD=X","EURAUD=X","EURCAD=X",
+    "EURUSD=X": "Euro / US-Dollar",
+    "USDJPY=X": "US-Dollar / Japanischer Yen",
+    "GBPUSD=X": "Britisches Pfund / US-Dollar",
+    "AUDUSD=X": "Australischer Dollar / US-Dollar",
+    "USDCAD=X": "US-Dollar / Kanadischer Dollar",
+    "USDCHF=X": "US-Dollar / Schweizer Franken",
+    "NZDUSD=X": "Neuseeland-Dollar / US-Dollar",
+    "EURGBP=X": "Euro / Britisches Pfund",
+    "EURJPY=X": "Euro / Japanischer Yen",
+    "EURCHF=X": "Euro / Schweizer Franken",
+    "GBPJPY=X": "Britisches Pfund / Japanischer Yen",
+    "AUDJPY=X": "Australischer Dollar / Japanischer Yen",
+    "CHFJPY=X": "Schweizer Franken / Japanischer Yen",
+    "EURNZD=X": "Euro / Neuseeland-Dollar",
+    "USDNOK=X": "US-Dollar / Norwegische Krone",
+    "USDDKK=X": "US-Dollar / Dänische Krone",
+    "USDSEK=X": "US-Dollar / Schwedische Krone",
+    "USDTRY=X": "US-Dollar / Türkische Lira",
+    "USDMXN=X": "US-Dollar / Mexikanischer Peso",
+    "USDCNH=X": "US-Dollar / Chinesischer Yuan",
+    "GBPAUD=X": "Britisches Pfund / Australischer Dollar",
+    "EURAUD=X": "Euro / Australischer Dollar",
+    "EURCAD=X": "Euro / Kanadischer Dollar",
     # Edelmetalle & Rohstoffe
-    "XAUUSD","XAGUSD","XPTUSD","XPDUSD","WTI","BRENT","NG=F","HG=F",
-    "SI=F","GC=F","CL=F","PL=F","PA=F","ZC=F","ZS=F","ZR=F","KC=F",
-    "SB=F","CT=F",
+    "XAUUSD": "Gold",
+    "XAGUSD": "Silber",
+    "XPTUSD": "Platin",
+    "XPDUSD": "Palladium",
+    "WTI": "Rohöl (West Texas)",
+    "BRENT": "Brent-Öl",
+    "NG=F": "Erdgas",
+    "HG=F": "Kupfer",
+    "SI=F": "Silber (Futures)",
+    "GC=F": "Gold (Futures)",
+    "CL=F": "Crude Oil (Futures)",
+    "PL=F": "Platin (Futures)",
+    "PA=F": "Palladium (Futures)",
+    "ZC=F": "Mais (Futures)",
+    "ZS=F": "Sojabohnen (Futures)",
+    "ZR=F": "Weizen (Futures)",
+    "KC=F": "Kaffee",
+    "SB=F": "Zucker",
+    "CT=F": "Baumwolle",
     # Indizes
-    "^GSPC","^DJI","^IXIC","^GDAXI","^FCHI","^FTSE","^N225","^HSI",
-    "000001.SS","^BVSP","^GSPTSE","^SSMI","^AS51","^MXX","^STOXX50E",
-    "^IBEX","^NSEI",
+    "^GSPC": "S&P 500",
+    "^DJI": "Dow Jones",
+    "^IXIC": "Nasdaq 100",
+    "^GDAXI": "DAX 40",
+    "^FCHI": "CAC 40",
+    "^FTSE": "FTSE 100",
+    "^N225": "Nikkei 225",
+    "^HSI": "Hang Seng (Hong Kong)",
+    "000001.SS": "Shanghai Composite",
+    "^BVSP": "Bovespa",
+    "^GSPTSE": "TSX Kanada",
+    "^SSMI": "SMI Schweiz",
+    "^AS51": "ASX 200 Australien",
+    "^MXX": "IPC Mexiko",
+    "^STOXX50E": "Euro Stoxx 50",
+    "^IBEX": "IBEX 35 Spanien",
+    "^NSEI": "Nifty 50 Indien",
     # Kryptowährungen
-    "BTC-USD","ETH-USD","BNB-USD","SOL-USD","XRP-USD","ADA-USD","DOGE-USD",
-    "DOT-USD","AVAX-USD","LTC-USD","TRX-USD","LINK-USD","ATOM-USD",
-    "MATIC-USD","UNI-USD","EOS-USD","FTT-USD","ALGO-USD","XTZ-USD",
-    "NEO-USD","AAVE-USD","COMP-USD","MKR-USD","SUSHI-USD","FIL-USD",
-    "ICP-USD","LUNA-USD","CEL-USD","RVN-USD","KSM-USD","ENJ-USD","CHZ-USD"
-]
+    "BTC-USD": "Bitcoin",
+    "ETH-USD": "Ethereum",
+    "BNB-USD": "Binance Coin",
+    "SOL-USD": "Solana",
+    "XRP-USD": "Ripple",
+    "ADA-USD": "Cardano",
+    "DOGE-USD": "Dogecoin",
+    "DOT-USD": "Polkadot",
+    "AVAX-USD": "Avalanche",
+    "LTC-USD": "Litecoin",
+    "TRX-USD": "Tron",
+    "LINK-USD": "Chainlink",
+    "ATOM-USD": "Cosmos",
+    "MATIC-USD": "Polygon",
+    "UNI-USD": "Uniswap",
+    "EOS-USD": "EOS",
+    "FTT-USD": "FTX Token",
+    "ALGO-USD": "Algorand",
+    "XTZ-USD": "Tezos",
+    "NEO-USD": "NEO",
+    "AAVE-USD": "Aave",
+    "COMP-USD": "Compound",
+    "MKR-USD": "Maker",
+    "SUSHI-USD": "SushiSwap",
+    "FIL-USD": "Filecoin",
+    "ICP-USD": "Internet Computer",
+    "LUNA-USD": "Terra",
+    "CEL-USD": "Celsius",
+    "RVN-USD": "Ravencoin",
+    "KSM-USD": "Kusama",
+    "ENJ-USD": "Enjin Coin",
+    "CHZ-USD": "Chiliz"
+}
 
-# --- Asset Names ---
-ASSET_NAMES = {asset: asset for asset in ASSETS}
+# --- Assets aus prognose.txt laden ---
+with open("prognose.txt", "r") as f:
+    assets = [line.split()[0] for line in f if line.strip() and not line.startswith("#")]
 
-# --- Daten laden ---
-def fetch_data(ticker, period="1mo", interval="1d"):
-    try:
-        df = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=True)
-        if df.empty:
-            return None
-        return df
-    except Exception as e:
-        print(f"Fehler bei {ticker}: {e}")
-        return None
-
-# --- Candlestick-Mustererkennung ---
+# --- Candlestick-Erkennung ---
 def detect_candlestick(df):
     if len(df) < 2:
         return "Neutral", "up", 50.0
@@ -49,8 +113,12 @@ def detect_candlestick(df):
     df['Body'] = df['Close'] - df['Open']
     last = df.iloc[-1]
     prev = df.iloc[-2]
+
     last_body = float(last['Body'])
     prev_body = float(prev['Body'])
+
+    last_close = float(last['Close'])
+    last_open = float(last['Open'])
 
     pattern = "Neutral"
     trend = "up"
@@ -64,59 +132,36 @@ def detect_candlestick(df):
         pattern = "Bearish Engulfing"
         trend = 'down'
     else:
-        trend = 'up' if last['Close'] > last['Open'] else 'down'
+        trend = 'up' if last_close > last_open else 'down'
 
-    confidence = min(abs(last_body) / last['Open'] * 100 * 2, 100)
+    confidence = min(abs(last_body) / last_open * 100 * 2, 100)
     return pattern, trend, round(confidence,2)
 
-# --- Prognosefunktion (einfach linear basierend auf letzten 5 Tagen) ---
-def forecast_next(df, days=5):
-    df = df.copy()
-    if len(df) < 5:
-        return pd.DataFrame()
-    df['Close_shift'] = df['Close'].shift(1)
-    df['Change'] = df['Close'] - df['Close_shift']
-    mean_change = df['Change'].iloc[-5:].mean()
-    last_close = df['Close'].iloc[-1]
-    forecast_values = [last_close + mean_change*(i+1) for i in range(days)]
-    future_dates = pd.date_range(start=df.index[-1]+pd.Timedelta(days=1), periods=days)
-    forecast_df = pd.DataFrame({"Date": future_dates, "Predicted": forecast_values})
-    return forecast_df
+# --- Daten laden ---
+def fetch_data(ticker, period="1mo", interval="1d"):
+    try:
+        df = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=True)
+        return df
+    except Exception as e:
+        print(f"Fehler bei {ticker}: {e}")
+        return None
 
-# --- Analyse aller Assets ---
+# --- Alles analysieren ---
 def analyze_and_predict_all():
     results = []
-    for ticker in ASSETS:
+    for ticker in assets:
         df = fetch_data(ticker)
-        if df is None:
+        if df is None or df.empty:
             continue
         pattern, trend, confidence = detect_candlestick(df)
-        forecast_df = forecast_next(df)
-        current_price = df['Close'].iloc[-1]
         results.append({
             "ticker": ticker,
             "name": ASSET_NAMES.get(ticker, ticker),
             "pattern": pattern,
             "trend": trend,
-            "confidence": confidence,
-            "current_price": current_price,
-            "history": df,
-            "forecast": forecast_df
+            "confidence": confidence
         })
-    return results
-
-# --- Diagramm erstellen ---
-def plot_asset(df, forecast_df, ticker):
-    plt.figure(figsize=(10,5))
-    plt.plot(df.index, df['Close'], label='Kurs', color='blue')
-    if not forecast_df.empty:
-        plt.plot(forecast_df['Date'], forecast_df['Predicted'], label='Prognose', color='red', linestyle='--')
-    plt.title(f"{ticker}")
-    plt.xlabel("Datum")
-    plt.ylabel("Preis")
-    plt.legend()
-    filename = f"{ticker.replace('^','')}.png"
-    plt.tight_layout()
-    plt.savefig(filename)
-    plt.close()
-    return filename
+    # Sortiere aufsteigend/absteigend
+    top_up = sorted([r for r in results if r['trend']=='up'], key=lambda x:x['confidence'], reverse=True)[:10]
+    top_down = sorted([r for r in results if r['trend']=='down'], key=lambda x:x['confidence'], reverse=True)[:10]
+    return top_up, top_down
