@@ -1,10 +1,8 @@
 import yfinance as yf
 import pandas as pd
-import mplfinance as mpf
-import os
-from datetime import timedelta
+import numpy as np
 
-# --- Mapping Ticker -> Ausgeschriebener Name ---
+# Mapping Ticker -> Ausgeschriebener Name
 ASSET_NAMES = {
     "EURUSD": "Euro / US-Dollar", "USDJPY": "US-Dollar / Japanischer Yen",
     "GBPUSD": "Britisches Pfund / US-Dollar", "AUDUSD": "Australischer Dollar / US-Dollar",
@@ -17,16 +15,33 @@ ASSET_NAMES = {
     "USDSEK": "US-Dollar / Schwedische Krone", "USDTRY": "US-Dollar / Türkische Lira",
     "USDMXN": "US-Dollar / Mexikanischer Peso", "USDCNH": "US-Dollar / Chinesischer Yuan",
     "GBPAUD": "Britisches Pfund / Australischer Dollar", "EURAUD": "Euro / Australischer Dollar",
-    "EURCAD": "Euro / Kanadischer Dollar",
-    "XAUUSD": "Gold", "XAGUSD": "Silber", "XPTUSD": "Platin", "XPDUSD": "Palladium",
-    "WTI": "Rohöl (West Texas)", "BRENT": "Brent-Öl"
+    "EURCAD": "Euro / Kanadischer Dollar", "XAUUSD": "Gold", "XAGUSD": "Silber",
+    "XPTUSD": "Platin", "XPDUSD": "Palladium", "WTI": "Rohöl (West Texas)",
+    "BRENT": "Brent-Öl", "NG=F": "Erdgas", "HG=F": "Kupfer",
+    "SI=F": "Silber (Futures)", "GC=F": "Gold (Futures)", "CL=F": "Crude Oil (Futures)",
+    "PL=F": "Platin (Futures)", "PA=F": "Palladium (Futures)", "ZC=F": "Mais (Futures)",
+    "ZS=F": "Sojabohnen (Futures)", "ZR=F": "Weizen (Futures)", "KC=F": "Kaffee",
+    "SB=F": "Zucker", "CT=F": "Baumwolle", "^GSPC": "S&P 500", "^DJI": "Dow Jones",
+    "^IXIC": "Nasdaq 100", "^GDAXI": "DAX 40", "^FCHI": "CAC 40", "^FTSE": "FTSE 100",
+    "^N225": "Nikkei 225", "^HSI": "Hang Seng (Hong Kong)", "000001.SS": "Shanghai Composite",
+    "^BVSP": "Bovespa", "^GSPTSE": "TSX Kanada", "^SSMI": "SMI Schweiz", "^AS51": "ASX 200 Australien",
+    "^MXX": "IPC Mexiko", "^STOXX50E": "Euro Stoxx 50", "^IBEX": "IBEX 35 Spanien",
+    "^NSEI": "Nifty 50 Indien", "BTC-USD": "Bitcoin", "ETH-USD": "Ethereum", "BNB-USD": "Binance Coin",
+    "SOL-USD": "Solana", "XRP-USD": "Ripple", "ADA-USD": "Cardano", "DOGE-USD": "Dogecoin",
+    "DOT-USD": "Polkadot", "AVAX-USD": "Avalanche", "LTC-USD": "Litecoin", "TRX-USD": "Tron",
+    "LINK-USD": "Chainlink", "ATOM-USD": "Cosmos", "MATIC-USD": "Polygon", "UNI-USD": "Uniswap",
+    "EOS-USD": "EOS", "FTT-USD": "FTX Token", "ALGO-USD": "Algorand", "XTZ-USD": "Tezos",
+    "NEO-USD": "NEO", "AAVE-USD": "Aave", "COMP-USD": "Compound", "MKR-USD": "Maker",
+    "SUSHI-USD": "SushiSwap", "FIL-USD": "Filecoin", "ICP-USD": "Internet Computer",
+    "LUNA-USD": "Terra", "CEL-USD": "Celsius", "RVN-USD": "Ravencoin", "KSM-USD": "Kusama",
+    "ENJ-USD": "Enjin Coin", "CHZ-USD": "Chiliz"
 }
 
-# --- Assets aus prognose.txt ---
+# Assets aus prognose.txt laden
 with open("prognose.txt", "r") as f:
     assets = [line.split()[0] for line in f if line.strip() and not line.startswith("#")]
 
-def fetch_data(ticker, period="7d", interval="1h"):
+def fetch_data(ticker, period="1mo", interval="1h"):
     try:
         df = yf.download(ticker, period=period, interval=interval, progress=False)
         if df.empty:
@@ -36,75 +51,57 @@ def fetch_data(ticker, period="7d", interval="1h"):
         print(f"Fehler bei {ticker}: {e}")
         return None
 
-# --- Candlestick-Mustererkennung ---
 def detect_candlestick_pattern(df):
+    """
+    Einfache Candlestick-Erkennung:
+    - Aufwärts-Trend: letzte Kerze grün + letzte 3 Kerzen höher als vorher
+    - Abwärts-Trend: letzte Kerze rot + letzte 3 Kerzen niedriger als vorher
+    - Seitwärts: sonst
+    """
     if df is None or df.empty:
-        return "Keine Daten"
+        return "Keine Daten", 0.0
 
-    last = df.iloc[-1]
-    body = abs(last['Close'] - last['Open'])
-    candle_range = last['High'] - last['Low']
+    closes = df['Close']
+    opens = df['Open']
 
-    # Doji
-    if body <= 0.1 * candle_range:
-        return "Doji"
-    # Hammer
-    elif (last['Close'] > last['Open'] and (last['Low'] < last['Open'] - 2*body)):
-        return "Hammer"
-    # Shooting Star
-    elif (last['Open'] > last['Close'] and (last['High'] > last['Open'] + 2*body)):
-        return "Shooting Star"
-    # Engulfing
-    if len(df) >=2:
-        prev = df.iloc[-2]
-        if last['Close'] > last['Open'] and prev['Close'] < prev['Open']:
-            if last['Open'] < prev['Close'] and last['Close'] > prev['Open']:
-                return "Bullish Engulfing"
-        if last['Close'] < last['Open'] and prev['Close'] > prev['Open']:
-            if last['Open'] > prev['Close'] and last['Close'] < prev['Open']:
-                return "Bearish Engulfing"
-    return "Unbekannt"
+    last_close = closes.iloc[-1]
+    last_open = opens.iloc[-1]
 
-def analyze_pattern(df):
-    if df is None or df.empty:
-        return "Keine Daten", 0
-    start = df["Close"].iloc[0]
-    end = df["Close"].iloc[-1]
-    change = (end - start) / start
-    pattern = detect_candlestick_pattern(df)
-    confidence = min(abs(change)*100*10, 100)  # skaliert auf max 100%
-    return pattern, round(confidence,2)
+    # einfacher Trend
+    change = (closes.iloc[-1] - closes.iloc[0]) / closes.iloc[0]
 
-def create_candlestick(df, ticker, forecast_steps=5):
-    if df is None or df.empty:
-        return None
-    last_price = float(df["Close"].iloc[-1])
-    forecast = [last_price * (1 + 0.001*i) for i in range(1, forecast_steps+1)]
-    future_index = [df.index[-1] + timedelta(hours=i) for i in range(1, forecast_steps+1)]
-    forecast_df = pd.DataFrame({"Open": forecast, "High": forecast, "Low": forecast, "Close": forecast}, index=future_index)
+    if last_close > last_open and closes.iloc[-1] > closes.iloc[-4:].min():
+        return "Aufwärts-Trend 📈", round(change*100, 2)
+    elif last_close < last_open and closes.iloc[-1] < closes.iloc[-4:].max():
+        return "Abwärts-Trend 📉", round(abs(change)*100, 2)
+    else:
+        return "Seitwärts-Trend ➖", round(abs(change)*100, 2)
 
-    plot_df = pd.concat([df, forecast_df])
-    mc = mpf.make_marketcolors(up='#1f77b4', down='#ff3333', edge='i', wick='i', volume='in')
-    s  = mpf.make_mpf_style(marketcolors=mc, gridstyle='--', y_on_right=False)
-    chart_path = f"charts/{ticker}.png"
-    os.makedirs("charts", exist_ok=True)
-    mpf.plot(plot_df, type='candle', style=s, title=ASSET_NAMES.get(ticker,ticker),
-             ylabel='Preis', figratio=(8,4), savefig=chart_path, tight_layout=True)
-    return chart_path
-
-def get_analysis():
+def analyze_assets():
     results = []
     for ticker in assets:
         df = fetch_data(ticker)
-        pattern, confidence = analyze_pattern(df)
-        chart = create_candlestick(df, ticker)
-        results.append({
-            "ticker": ticker,
-            "name": ASSET_NAMES.get(ticker, ticker),
-            "pattern": pattern,
-            "confidence": confidence,
-            "chart": chart
-        })
-    top = sorted(results, key=lambda x:x["confidence"], reverse=True)[:10]
-    flop = sorted(results, key=lambda x:x["confidence"])[:10]
-    return top, flop
+        pattern, confidence = detect_candlestick_pattern(df)
+        if pattern != "Keine Daten":
+            results.append({
+                "ticker": ticker,
+                "name": ASSET_NAMES.get(ticker, ticker),
+                "pattern": pattern,
+                "confidence": confidence,
+                "df": df
+            })
+    # Sortieren
+    top_up = sorted([r for r in results if "Aufwärts" in r["pattern"]],
+                    key=lambda x: x["confidence"], reverse=True)[:10]
+    top_down = sorted([r for r in results if "Abwärts" in r["pattern"]],
+                      key=lambda x: x["confidence"], reverse=True)[:10]
+    return top_up, top_down
+
+if __name__ == "__main__":
+    up, down = analyze_assets()
+    print("Top 10 Steigende:")
+    for r in up:
+        print(f"{r['name']}: {r['pattern']} ({r['confidence']}%)")
+    print("\nTop 10 Fallende:")
+    for r in down:
+        print(f"{r['name']}: {r['pattern']} ({r['confidence']}%)")
