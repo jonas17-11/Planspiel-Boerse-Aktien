@@ -9,5 +9,4 @@ discord.py>=2.2.2
 scikit-learn>=1.5.2
 plotly>=5.20.0
 pillow>=10.1.0
-imgkit>=1.4.6
 kaleido>=0.3.2
