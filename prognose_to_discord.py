@@ -1,60 +1,60 @@
 import os
-import json
-import pandas as pd
+import io
+import matplotlib.pyplot as plt
+from analyzer import analyze_and_predict_all
 import requests
 
-# Discord Webhook aus GitHub Secrets
-WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK")
+WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")  # Discord Webhook
 
-# Farben für Embed
-COLOR_UPTREND = 0x00FF00   # Grün
-COLOR_DOWNTREND = 0xFF0000 # Rot
-COLOR_NEUTRAL = 0xFFFF00   # Gelb
+def plot_asset(df, forecast_df, name, trend_up=True):
+    plt.figure(figsize=(8,4))
+    plt.plot(df.index, df['Close'], label='Aktueller Kurs', color='blue')
+    plt.plot(forecast_df.index, forecast_df['Predicted'], 
+             label='Prognose', color='green' if trend_up else 'red', linestyle='--')
+    plt.title(f"{name} - Prognose")
+    plt.xlabel("Datum")
+    plt.ylabel("Preis")
+    plt.legend()
+    plt.tight_layout()
 
-# Analyseergebnisse laden
-CSV_FILE = "analysis_results.csv"
-df = pd.read_csv(CSV_FILE)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close()
+    buf.seek(0)
+    return buf
 
-# Top 5 Assets nach Confidence auswählen
-df_sorted = df.sort_values(by="confidence", ascending=False)
-top_assets = df_sorted.head(5)
+def build_discord_message(analysis):
+    rising = sorted([a for a in analysis if a['trend']=='up'], key=lambda x:x['confidence'], reverse=True)[:10]
+    falling = sorted([a for a in analysis if a['trend']=='down'], key=lambda x:x['confidence'], reverse=True)[:10]
 
-def create_embed(asset):
-    trend_color = COLOR_UPTREND if asset["trend"]=="Uptrend" else COLOR_DOWNTREND
-    pattern = asset["pattern"] if pd.notna(asset["pattern"]) else "–"
-    confidence = f"{asset['confidence']*100:.1f}%"
-    
-    embed = {
-        "title": f"{asset['name']} ({asset['ticker']})",
-        "color": trend_color,
-        "fields": [
-            {"name": "Trend", "value": asset["trend"], "inline": True},
-            {"name": "Pattern", "value": pattern, "inline": True},
-            {"name": "Confidence", "value": confidence, "inline": True},
-        ],
-        "image": {"url": f"attachment://{os.path.basename(asset['chart'])}"}
-    }
-    return embed
+    message = "**📈 Top 10 Steigende Assets:**\n"
+    for a in rising:
+        message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n"
 
-def send_to_discord(assets):
+    message += "\n**📉 Top 10 Fallende Assets:**\n"
+    for a in falling:
+        message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n"
+
+    return message, rising + falling
+
+def post_to_discord():
+    analysis = analyze_and_predict_all()
+    if not analysis:
+        print("Keine Analyseergebnisse.")
+        return
+
+    message, assets_to_plot = build_discord_message(analysis)
+
     files = []
-    embeds = []
-    for asset in assets.to_dict(orient="records"):
-        chart_path = asset["chart"]
-        if os.path.exists(chart_path):
-            files.append(("file", (os.path.basename(chart_path), open(chart_path, "rb"), "image/png")))
-        embeds.append(create_embed(asset))
-    
-    payload = {
-        "username": "📈 Markt-Analyzer",
-        "embeds": embeds
-    }
-    
-    response = requests.post(WEBHOOK_URL, data={"payload_json": json.dumps(payload)}, files=files)
-    if response.status_code == 204 or response.status_code == 200:
-        print("Analyse erfolgreich an Discord gesendet!")
+    for a in assets_to_plot:
+        buf = plot_asset(a['df'], a['forecast_df'], a['name'], trend_up=(a['trend']=='up'))
+        files.append(("file", (f"{a['ticker']}.png", buf, "image/png")))
+
+    response = requests.post(WEBHOOK_URL, data={"content": message}, files=files)
+    if response.status_code in (200,204):
+        print("Erfolgreich in Discord gesendet ✅")
     else:
-        print(f"Fehler beim Senden: {response.status_code}, {response.text}")
+        print(f"Fehler beim Senden: {response.status_code} {response.text}")
 
 if __name__ == "__main__":
-    send_to_discord(top_assets)
+    post_to_discord()
