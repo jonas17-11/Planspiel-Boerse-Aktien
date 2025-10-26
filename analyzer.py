@@ -1,14 +1,11 @@
+# analyzer.py
 import yfinance as yf
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
-import matplotlib.pyplot as plt
-import io
-import base64
 
-# --- Assets ---
+# --- Mapping Ticker -> Ausgeschriebener Name ---
 ASSET_NAMES = {
-    # --- Währungen (Forex) ---
+    # Währungen (Forex)
     "EURUSD=X": "Euro / US-Dollar",
     "USDJPY=X": "US-Dollar / Japanischer Yen",
     "GBPUSD=X": "Britisches Pfund / US-Dollar",
@@ -32,8 +29,7 @@ ASSET_NAMES = {
     "GBPAUD=X": "Britisches Pfund / Australischer Dollar",
     "EURAUD=X": "Euro / Australischer Dollar",
     "EURCAD=X": "Euro / Kanadischer Dollar",
-
-    # --- Edelmetalle & Rohstoffe ---
+    # Edelmetalle & Rohstoffe
     "XAUUSD": "Gold",
     "XAGUSD": "Silber",
     "XPTUSD": "Platin",
@@ -53,8 +49,7 @@ ASSET_NAMES = {
     "KC=F": "Kaffee",
     "SB=F": "Zucker",
     "CT=F": "Baumwolle",
-
-    # --- Indizes ---
+    # Indizes
     "^GSPC": "S&P 500",
     "^DJI": "Dow Jones",
     "^IXIC": "Nasdaq 100",
@@ -72,8 +67,7 @@ ASSET_NAMES = {
     "^STOXX50E": "Euro Stoxx 50",
     "^IBEX": "IBEX 35 Spanien",
     "^NSEI": "Nifty 50 Indien",
-
-    # --- Kryptowährungen ---
+    # Kryptowährungen
     "BTC-USD": "Bitcoin",
     "ETH-USD": "Ethereum",
     "BNB-USD": "Binance Coin",
@@ -108,99 +102,74 @@ ASSET_NAMES = {
     "CHZ-USD": "Chiliz"
 }
 
-# --- Assets aus prognose.txt laden ---
+# --- Assets laden ---
 with open("prognose.txt", "r") as f:
     assets = [line.split()[0] for line in f if line.strip() and not line.startswith("#")]
 
-# --- Daten abrufen ---
-def fetch_data(ticker, period="1mo", interval="1d"):
+def fetch_data(ticker, period="7d", interval="1h"):
+    """Lade historische Kursdaten für das Asset."""
     try:
         df = yf.download(ticker, period=period, interval=interval, progress=False)
-        df = df.dropna()
+        df.dropna(inplace=True)
         return df
     except Exception as e:
         print(f"Fehler bei {ticker}: {e}")
         return None
 
-# --- Candlestick Mustererkennung (kurzfristig) ---
-def detect_candlestick(df):
-    if df is None or len(df) < 2:
-        return "Keine Daten", 0
-    open_ = df['Open'].iloc[-2:]
-    close = df['Close'].iloc[-2:]
-    high = df['High'].iloc[-2:]
-    low = df['Low'].iloc[-2:]
-    
-    # Einfaches Beispiel: Bullish/Bearish Engulfing
-    if close.iloc[-2] < open_.iloc[-2] and close.iloc[-1] > open_.iloc[-1] and close.iloc[-1] > open_.iloc[-2]:
-        return "Bullish Engulfing 📈", 0.7
-    elif close.iloc[-2] > open_.iloc[-2] and close.iloc[-1] < open_.iloc[-1] and close.iloc[-1] < open_.iloc[-2]:
-        return "Bearish Engulfing 📉", 0.7
-    elif abs(close.iloc[-1] - open_.iloc[-1]) / (high.iloc[-1] - low.iloc[-1] + 1e-6) < 0.1:
-        return "Doji ➖", 0.5
-    else:
-        # Trend kurzfristig
-        change = (close.iloc[-1] - close.iloc[-2]) / close.iloc[-2]
-        if change > 0.01:
-            return "Kurzfristig steigend 📈", round(change*100,2)
-        elif change < -0.01:
-            return "Kurzfristig fallend 📉", round(-change*100,2)
-        else:
-            return "Seitwärts ➖", round(change*100,2)
+def detect_candlestick_pattern(df):
+    """Einfache kurzfristige Candlestick-Erkennung."""
+    if df is None or len(df) < 3:
+        return "Keine Daten", 0, 0
+    patterns = []
 
-# --- Prognose einfacher linearer Trend ---
-def forecast_next(df, days=3):
+    o, h, l, c = df["Open"].iloc[-1], df["High"].iloc[-1], df["Low"].iloc[-1], df["Close"].iloc[-1]
+    body = abs(c - o)
+    lower_shadow = o - l if c >= o else c - l
+    upper_shadow = h - c if c >= o else h - o
+
+    if lower_shadow > 2 * body and upper_shadow < body:
+        patterns.append("Hammer")
+    if upper_shadow > 2 * body and lower_shadow < body:
+        patterns.append("Shooting Star")
+
+    if len(df) >= 2:
+        prev_o, prev_c = df["Open"].iloc[-2], df["Close"].iloc[-2]
+        if c > o and prev_c < prev_o and o < prev_c and c > prev_o:
+            patterns.append("Bullish Engulfing")
+        if c < o and prev_c > prev_o and o > prev_c and c < prev_o:
+            patterns.append("Bearish Engulfing")
+
+    pattern = ", ".join(patterns) if patterns else "Keine erkennbare Formation"
+    change = (df["Close"].iloc[-1] - df["Close"].iloc[0]) / df["Close"].iloc[0]
+    confidence = min(abs(change) * 100 * 2, 100)
+    return pattern, confidence, change
+
+def forecast_trend(df):
+    """Lineare Prognose der nächsten 5 Stunden."""
     if df is None or len(df) < 2:
         return None
-    close = df['Close'].values
-    x = np.arange(len(close))
-    coef = np.polyfit(x, close, 1)
-    trend = np.poly1d(coef)
-    future_x = np.arange(len(close), len(close)+days)
-    pred = trend(future_x)
-    return pred
+    last_idx = df.index[-1]
+    future_dates = pd.date_range(start=last_idx + pd.Timedelta(hours=1), periods=5, freq="H")
+    last_close = df["Close"].iloc[-1]
+    trend_slope = df["Close"].pct_change().rolling(3).mean().iloc[-1]
+    predicted = last_close * (1 + trend_slope) ** np.arange(1, 6)
+    forecast_df = pd.DataFrame({"Predicted": predicted}, index=future_dates)
+    return forecast_df
 
-# --- Liniendiagramm erstellen ---
-def create_chart(df, forecast, ticker):
-    plt.figure(figsize=(8,4))
-    plt.plot(df.index, df['Close'], label="Aktueller Kurs", color="blue")
-    if forecast is not None:
-        future_index = [df.index[-1] + timedelta(days=i+1) for i in range(len(forecast))]
-        plt.plot(future_index, forecast, label="Prognose", color="red")
-    plt.title(f"{ASSET_NAMES.get(ticker,ticker)} Kursverlauf")
-    plt.ylabel("Preis")
-    plt.legend()
-    plt.tight_layout()
-    
-    buf = io.BytesIO()
-    plt.savefig(buf, format="png")
-    plt.close()
-    buf.seek(0)
-    img_b64 = base64.b64encode(buf.read()).decode("utf-8")
-    return f"data:image/png;base64,{img_b64}"
-
-# --- Analyse und Zusammenfassung ---
-def analyze_asset(ticker):
-    df = fetch_data(ticker)
-    pattern, confidence = detect_candlestick(df)
-    forecast = forecast_next(df)
-    last_price = df['Close'].iloc[-1] if df is not None and not df.empty else None
-    chart = create_chart(df, forecast, ticker)
-    return {
-        "ticker": ticker,
-        "name": ASSET_NAMES.get(ticker, ticker),
-        "pattern": pattern,
-        "confidence": confidence,
-        "last_price": last_price,
-        "chart": chart
-    }
-
-def get_analysis():
+def analyze_and_predict_all():
+    """Analyse für alle Assets."""
     results = []
     for ticker in assets:
-        res = analyze_asset(ticker)
-        results.append(res)
-    # Sortiere aufsteigend/absteigend nach letztem Kurs-Change
-    results_sorted_up = sorted(results, key=lambda x: x["confidence"], reverse=True)[:10]
-    results_sorted_down = sorted(results, key=lambda x: x["confidence"])[:10]
-    return results_sorted_up, results_sorted_down
+        df = fetch_data(ticker)
+        pattern, confidence, change = detect_candlestick_pattern(df)
+        forecast_df = forecast_trend(df)
+        results.append({
+            "ticker": ticker,
+            "name": ASSET_NAMES.get(ticker, ticker),
+            "pattern": pattern,
+            "confidence": confidence,
+            "change": change,
+            "df": df,
+            "forecast": forecast_df
+        })
+    return results
