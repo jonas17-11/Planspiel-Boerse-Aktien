@@ -1,9 +1,8 @@
-# analyzer.py
 import yfinance as yf
 import pandas as pd
 import numpy as np
 
-# --- Mapping Ticker -> Ausgeschriebener Name ---
+# --- Mapping Ticker -> Name ---
 ASSET_NAMES = {
     # Währungen (Forex)
     "EURUSD=X": "Euro / US-Dollar",
@@ -102,74 +101,73 @@ ASSET_NAMES = {
     "CHZ-USD": "Chiliz"
 }
 
-# --- Assets laden ---
-with open("prognose.txt", "r") as f:
-    assets = [line.split()[0] for line in f if line.strip() and not line.startswith("#")]
+# --- Assets Liste ---
+ASSETS = list(ASSET_NAMES.keys())
 
-def fetch_data(ticker, period="7d", interval="1h"):
-    """Lade historische Kursdaten für das Asset."""
+# --- Daten abrufen ---
+def fetch_data(ticker, period="1mo", interval="1h"):
     try:
-        df = yf.download(ticker, period=period, interval=interval, progress=False)
+        df = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=True)
         df.dropna(inplace=True)
         return df
     except Exception as e:
         print(f"Fehler bei {ticker}: {e}")
         return None
 
-def detect_candlestick_pattern(df):
-    """Einfache kurzfristige Candlestick-Erkennung."""
-    if df is None or len(df) < 3:
-        return "Keine Daten", 0, 0
-    patterns = []
+# --- Candlestick-Muster erkennen ---
+def detect_candlestick(df):
+    """
+    Sehr einfache Mustererkennung:
+    - Bullish Engulfing: Aufwärts-Trend Signal
+    - Bearish Engulfing: Abwärts-Trend Signal
+    """
+    df['Body'] = df['Close'] - df['Open']
+    df['PrevBody'] = df['Body'].shift(1)
 
-    o, h, l, c = df["Open"].iloc[-1], df["High"].iloc[-1], df["Low"].iloc[-1], df["Close"].iloc[-1]
-    body = abs(c - o)
-    lower_shadow = o - l if c >= o else c - l
-    upper_shadow = h - c if c >= o else h - o
+    pattern = "Neutral"
+    last = df.iloc[-1]
+    prev = df.iloc[-2]
 
-    if lower_shadow > 2 * body and upper_shadow < body:
-        patterns.append("Hammer")
-    if upper_shadow > 2 * body and lower_shadow < body:
-        patterns.append("Shooting Star")
+    # Bullish Engulfing
+    if prev['Body'] < 0 and last['Body'] > 0 and abs(last['Body']) > abs(prev['Body']):
+        pattern = "Bullish Engulfing"
+        trend = 'up'
+    # Bearish Engulfing
+    elif prev['Body'] > 0 and last['Body'] < 0 and abs(last['Body']) > abs(prev['Body']):
+        pattern = "Bearish Engulfing"
+        trend = 'down'
+    else:
+        trend = 'up' if last['Close'] > last['Open'] else 'down'
 
-    if len(df) >= 2:
-        prev_o, prev_c = df["Open"].iloc[-2], df["Close"].iloc[-2]
-        if c > o and prev_c < prev_o and o < prev_c and c > prev_o:
-            patterns.append("Bullish Engulfing")
-        if c < o and prev_c > prev_o and o > prev_c and c < prev_o:
-            patterns.append("Bearish Engulfing")
+    confidence = min(abs(last['Body']) / last['Open'] * 100 * 2, 100)  # einfache Prozentangabe
+    return pattern, trend, round(confidence,2)
 
-    pattern = ", ".join(patterns) if patterns else "Keine erkennbare Formation"
-    change = (df["Close"].iloc[-1] - df["Close"].iloc[0]) / df["Close"].iloc[0]
-    confidence = min(abs(change) * 100 * 2, 100)
-    return pattern, confidence, change
-
-def forecast_trend(df):
-    """Lineare Prognose der nächsten 5 Stunden."""
-    if df is None or len(df) < 2:
-        return None
-    last_idx = df.index[-1]
-    future_dates = pd.date_range(start=last_idx + pd.Timedelta(hours=1), periods=5, freq="H")
-    last_close = df["Close"].iloc[-1]
-    trend_slope = df["Close"].pct_change().rolling(3).mean().iloc[-1]
-    predicted = last_close * (1 + trend_slope) ** np.arange(1, 6)
-    forecast_df = pd.DataFrame({"Predicted": predicted}, index=future_dates)
+# --- Prognose erstellen (einfacher linearer Trend) ---
+def forecast(df, hours=24):
+    last_close = df['Close'].iloc[-1]
+    changes = df['Close'].pct_change().fillna(0)
+    avg_change = changes[-20:].mean()  # Durchschnitt der letzten 20 Perioden
+    predicted_values = [last_close * (1 + avg_change * (i+1)) for i in range(hours)]
+    future_index = pd.date_range(df.index[-1], periods=hours+1, freq=df.index.freq)[1:]
+    forecast_df = pd.DataFrame({"Predicted": predicted_values}, index=future_index)
     return forecast_df
 
+# --- Hauptfunktion ---
 def analyze_and_predict_all():
-    """Analyse für alle Assets."""
     results = []
-    for ticker in assets:
+    for ticker in ASSETS:
         df = fetch_data(ticker)
-        pattern, confidence, change = detect_candlestick_pattern(df)
-        forecast_df = forecast_trend(df)
+        if df is None or df.empty:
+            continue
+        pattern, trend, confidence = detect_candlestick(df)
+        forecast_df = forecast(df)
         results.append({
             "ticker": ticker,
             "name": ASSET_NAMES.get(ticker, ticker),
-            "pattern": pattern,
+            "trend": trend,
             "confidence": confidence,
-            "change": change,
+            "pattern": pattern,
             "df": df,
-            "forecast": forecast_df
+            "forecast_df": forecast_df
         })
     return results
