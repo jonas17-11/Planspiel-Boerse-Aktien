@@ -1,24 +1,27 @@
 import yfinance as yf
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
+import os
 
-# --- Mapping Ticker -> Ausgeschriebener Name ---
-ASSET_NAMES = {
-    # Währungen (Forex)
+# --- Asset-Langnamen ---
+ASSETS = {
+    # Währungen
     "EURUSD=X": "Euro / US-Dollar",
     "USDJPY=X": "US-Dollar / Japanischer Yen",
     "GBPUSD=X": "Britisches Pfund / US-Dollar",
     "AUDUSD=X": "Australischer Dollar / US-Dollar",
     "USDCAD=X": "US-Dollar / Kanadischer Dollar",
     "USDCHF=X": "US-Dollar / Schweizer Franken",
-    "NZDUSD=X": "Neuseeland-Dollar / US-Dollar",
+    "NZDUSD=X": "Neuseeländischer Dollar / US-Dollar",
     "EURGBP=X": "Euro / Britisches Pfund",
     "EURJPY=X": "Euro / Japanischer Yen",
     "EURCHF=X": "Euro / Schweizer Franken",
     "GBPJPY=X": "Britisches Pfund / Japanischer Yen",
     "AUDJPY=X": "Australischer Dollar / Japanischer Yen",
     "CHFJPY=X": "Schweizer Franken / Japanischer Yen",
-    "EURNZD=X": "Euro / Neuseeland-Dollar",
+    "EURNZD=X": "Euro / Neuseeländischer Dollar",
     "USDNOK=X": "US-Dollar / Norwegische Krone",
     "USDDKK=X": "US-Dollar / Dänische Krone",
     "USDSEK=X": "US-Dollar / Schwedische Krone",
@@ -56,7 +59,7 @@ ASSET_NAMES = {
     "^FCHI": "CAC 40",
     "^FTSE": "FTSE 100",
     "^N225": "Nikkei 225",
-    "^HSI": "Hang Seng (Hong Kong)",
+    "^HSI": "Hang Seng",
     "000001.SS": "Shanghai Composite",
     "^BVSP": "Bovespa",
     "^GSPTSE": "TSX Kanada",
@@ -101,67 +104,74 @@ ASSET_NAMES = {
     "CHZ-USD": "Chiliz"
 }
 
-# --- Assets aus prognose.txt laden ---
-with open("prognose.txt", "r") as f:
-    assets = [line.split()[0] for line in f if line.strip() and not line.startswith("#")]
+def fetch_data(ticker, period="30d", interval="1d"):
+    """Historische Kursdaten abrufen"""
+    df = yf.download(ticker, period=period, interval=interval)
+    df = df.dropna()
+    return df
 
-# --- Candlestick-Erkennung ---
-def detect_candlestick(df):
-    if len(df) < 2:
-        return "Neutral", "up", 50.0
-    df = df.copy()
-    df['Body'] = df['Close'] - df['Open']
+def bullish_bearish_engulfing(df):
+    """Candlestick Engulfing Pattern erkennen"""
     last = df.iloc[-1]
     prev = df.iloc[-2]
-
-    last_body = float(last['Body'])
-    prev_body = float(prev['Body'])
-
-    last_close = float(last['Close'])
-    last_open = float(last['Open'])
-
-    pattern = "Neutral"
-    trend = "up"
-
     # Bullish Engulfing
-    if prev_body < 0 and last_body > 0 and abs(last_body) > abs(prev_body):
-        pattern = "Bullish Engulfing"
-        trend = 'up'
+    if (last['Close'] > last['Open']) and (prev['Close'] < prev['Open']) and (last['Open'] < prev['Close']) and (last['Close'] > prev['Open']):
+        return "Bullish Engulfing"
     # Bearish Engulfing
-    elif prev_body > 0 and last_body < 0 and abs(last_body) > abs(prev_body):
-        pattern = "Bearish Engulfing"
-        trend = 'down'
+    elif (last['Close'] < last['Open']) and (prev['Close'] > prev['Open']) and (last['Open'] > prev['Close']) and (last['Close'] < prev['Open']):
+        return "Bearish Engulfing"
     else:
-        trend = 'up' if last_close > last_open else 'down'
-
-    confidence = min(abs(last_body) / last_open * 100 * 2, 100)
-    return pattern, trend, round(confidence,2)
-
-# --- Daten laden ---
-def fetch_data(ticker, period="1mo", interval="1d"):
-    try:
-        df = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=True)
-        return df
-    except Exception as e:
-        print(f"Fehler bei {ticker}: {e}")
         return None
 
-# --- Alles analysieren ---
-def analyze_and_predict_all():
+def calculate_trend_confidence(df):
+    """Einfacher Trend und Confidence berechnen"""
+    returns = df['Close'].pct_change().dropna()
+    mean_return = returns.mean()
+    std_return = returns.std()
+    trend = "Uptrend" if mean_return > 0 else "Downtrend"
+    confidence = min(max(abs(mean_return)/std_return,0),1)  # normiert auf 0-1
+    return trend, round(confidence,2)
+
+def generate_chart(df, ticker):
+    """Chart mit Preisverlauf erzeugen"""
+    plt.figure(figsize=(6,4))
+    plt.plot(df.index, df['Close'], label="Close", color='blue')
+    plt.title(f"{ASSETS.get(ticker, ticker)} Kursverlauf")
+    plt.xlabel("Datum")
+    plt.ylabel("Preis")
+    plt.tight_layout()
+    filename = f"charts/{ticker.replace('=','').replace('-','')}.png"
+    os.makedirs("charts", exist_ok=True)
+    plt.savefig(filename)
+    plt.close()
+    return filename
+
+def analyze_ticker(ticker):
+    df = fetch_data(ticker)
+    pattern = bullish_bearish_engulfing(df)
+    trend, confidence = calculate_trend_confidence(df)
+    chart_path = generate_chart(df, ticker)
+    return {
+        "ticker": ticker,
+        "name": ASSETS.get(ticker, ticker),
+        "trend": trend,
+        "pattern": pattern,
+        "confidence": confidence,
+        "chart": chart_path
+    }
+
+def analyze_all():
     results = []
-    for ticker in assets:
-        df = fetch_data(ticker)
-        if df is None or df.empty:
-            continue
-        pattern, trend, confidence = detect_candlestick(df)
-        results.append({
-            "ticker": ticker,
-            "name": ASSET_NAMES.get(ticker, ticker),
-            "pattern": pattern,
-            "trend": trend,
-            "confidence": confidence
-        })
-    # Sortiere aufsteigend/absteigend
-    top_up = sorted([r for r in results if r['trend']=='up'], key=lambda x:x['confidence'], reverse=True)[:10]
-    top_down = sorted([r for r in results if r['trend']=='down'], key=lambda x:x['confidence'], reverse=True)[:10]
-    return top_up, top_down
+    for ticker in ASSETS.keys():
+        try:
+            res = analyze_ticker(ticker)
+            results.append(res)
+        except Exception as e:
+            print(f"Fehler bei {ticker}: {e}")
+    return results
+
+if __name__ == "__main__":
+    analysis = analyze_all()
+    # Optional in CSV speichern
+    pd.DataFrame(analysis).to_csv("analysis_results.csv", index=False)
+    print("Analyse abgeschlossen!")
