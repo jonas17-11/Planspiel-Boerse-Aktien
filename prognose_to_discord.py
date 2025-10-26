@@ -1,75 +1,74 @@
+# prognose_to_discord.py
 import os
-import requests
+import io
 import matplotlib.pyplot as plt
-from analyzer import analyze_and_predict_all  # passt zu deinem analyzer.py
-from datetime import datetime
+from analyzer import get_analysis
+import requests
 
 WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
-IMAGE_DIR = "charts"  # Ordner für Diagramme
-os.makedirs(IMAGE_DIR, exist_ok=True)
 
-def save_chart(asset):
+def plot_asset(asset):
     df = asset["df"]
-    forecast = asset["forecast"]
-
+    forecast = asset.get("forecast")
     plt.figure(figsize=(10, 4))
-    plt.plot(df.index, df["Close"], label="Kurs", color="blue")
-    plt.plot(forecast.index, forecast["Predicted"], label="Prognose", color="red", linestyle="--")
-    plt.title(f"{asset['name']} - {asset['pattern']}")
+    plt.plot(df.index, df["Close"], label="Aktueller Kurs", color="blue", linewidth=2)
+    if forecast is not None:
+        plt.plot(forecast.index, forecast["Predicted"], 
+                 label="Prognose", 
+                 color="green" if asset["trend"] > 0 else "red",
+                 linestyle="--", linewidth=2)
+    plt.title(f"{asset['name']} ({asset['pattern']})")
     plt.xlabel("Datum")
-    plt.ylabel("Preis")
+    plt.ylabel("Kurs")
     plt.legend()
-    plt.grid(True, alpha=0.3)
-
-    filename = f"{IMAGE_DIR}/{asset['ticker']}.png"
-    plt.savefig(filename, bbox_inches="tight")
+    plt.tight_layout()
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png")
     plt.close()
-    return filename
+    buf.seek(0)
+    return buf
 
 def build_discord_message(analysis):
-    top_up = sorted(analysis, key=lambda x: x["change"], reverse=True)[:10]
-    top_down = sorted(analysis, key=lambda x: x["change"])[:10]
+    # Top 10 steigende & Top 10 fallende
+    rising = sorted([a for a in analysis if a["trend"] > 0], key=lambda x: x["confidence"], reverse=True)[:10]
+    falling = sorted([a for a in analysis if a["trend"] < 0], key=lambda x: x["confidence"], reverse=True)[:10]
 
-    message = "**📈 Top 10 steigende Assets:**\n"
-    for item in top_up:
-        message += f"- **{item['name']}**: {item['pattern']} ({item['change']:.2f}%), Aktuell: {item['current']}\n"
+    message = "**📈 Top 10 Steigende Assets:**\n"
+    for a in rising:
+        message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n"
 
-    message += "\n**📉 Top 10 sinkende Assets:**\n"
-    for item in top_down:
-        message += f"- **{item['name']}**: {item['pattern']} ({item['change']:.2f}%), Aktuell: {item['current']}\n"
+    message += "\n**📉 Top 10 Fallende Assets:**\n"
+    for a in falling:
+        message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n"
 
-    message += f"\n_Stand: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}_"
-    return message, top_up + top_down  # Wir geben die Assets zurück, um Diagramme zu generieren
+    return message, rising + falling
 
 def post_to_discord():
-    analysis = analyze_and_predict_all()
+    analysis = get_analysis()
     if not analysis:
         print("Keine Analyse-Ergebnisse.")
         return
 
-    message, assets_for_chart = build_discord_message(analysis)
-    
-    # Sende Nachricht
+    message, assets_to_plot = build_discord_message(analysis)
+
+    # Text senden
     payload = {"content": message}
     response = requests.post(WEBHOOK_URL, json=payload)
-    if response.status_code in (200, 204):
-        print("Text erfolgreich in Discord gesendet ✅")
+    if response.status_code == 204:
+        print("Text erfolgreich gesendet ✅")
     else:
         print(f"Fehler beim Senden: {response.status_code} {response.text}")
 
-    # Diagramme senden
-    for asset in assets_for_chart:
-        chart_file = save_chart(asset)
-        with open(chart_file, "rb") as f:
-            response = requests.post(
-                WEBHOOK_URL,
-                files={"file": f},
-                data={"content": f"📊 **{asset['name']} - {asset['pattern']}**"}
-            )
-            if response.status_code in (200, 204):
-                print(f"Diagramm für {asset['name']} gesendet ✅")
-            else:
-                print(f"Fehler beim Senden des Diagramms: {response.status_code}")
+    # Bilder senden
+    for asset in assets_to_plot:
+        img_buf = plot_asset(asset)
+        files = {"file": ("plot.png", img_buf)}
+        response = requests.post(WEBHOOK_URL, files=files)
+        if response.status_code == 204:
+            print(f"{asset['name']} Diagramm erfolgreich gesendet ✅")
+        else:
+            print(f"Fehler beim Senden von {asset['name']}: {response.status_code} {response.text}")
 
 if __name__ == "__main__":
     post_to_discord()
