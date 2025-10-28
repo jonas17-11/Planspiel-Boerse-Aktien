@@ -1,6 +1,7 @@
 import os
 import io
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from analyzer import analyze_and_predict_all
 import requests
@@ -11,11 +12,10 @@ def plot_asset(df, name, trend_up=True, forecast_days=5):
     plt.figure(figsize=(8,4))
     plt.plot(df.index, df['Close'], label='Kurs', color='blue')
 
-    # --- Einfache Prognose ---
+    # --- Einfache lineare Prognose ---
     last_index = df.index[-1]
     y = df['Close'].values
     x = np.arange(len(y))
-    # lineare Regression (Trend)
     coeffs = np.polyfit(x, y, 1)
     forecast_x = np.arange(len(y), len(y)+forecast_days)
     forecast_y = np.polyval(coeffs, forecast_x)
@@ -60,11 +60,14 @@ def post_to_discord():
         files.append(("file", (f"{a['ticker']}.png", buf, "image/png")))
 
     payload = {"content": message}
-    response = requests.post(WEBHOOK_URL, data=payload, files=files)
-    if response.status_code in (200,204):
-        print("Erfolgreich in Discord gesendet ✅")
-    else:
-        print(f"Fehler beim Senden: {response.status_code} {response.text}")
+    try:
+        response = requests.post(WEBHOOK_URL, data=payload, files=files)
+        if response.status_code in (200, 204):
+            print("Erfolgreich in Discord gesendet ✅")
+        else:
+            print(f"Fehler beim Senden: {response.status_code} {response.text}")
+    except Exception as e:
+        print(f"Fehler beim Senden an Discord: {e}")
 
 if __name__ == "__main__":
     post_to_discord()
