@@ -13,21 +13,24 @@ ASSET_NAMES = {
     "BTC-USD": "Bitcoin", "ETH-USD": "Ethereum", "BNB-USD": "Binance Coin", "SOL-USD": "Solana", "XRP-USD": "Ripple", "ADA-USD": "Cardano", "DOGE-USD": "Dogecoin", "DOT-USD": "Polkadot", "AVAX-USD": "Avalanche", "LTC-USD": "Litecoin", "TRX-USD": "Tron", "LINK-USD": "Chainlink", "ATOM-USD": "Cosmos", "MATIC-USD": "Polygon", "UNI-USD": "Uniswap", "EOS-USD": "EOS", "FTT-USD": "FTX Token", "ALGO-USD": "Algorand", "XTZ-USD": "Tezos", "NEO-USD": "NEO", "AAVE-USD": "Aave", "COMP-USD": "Compound", "MKR-USD": "Maker", "SUSHI-USD": "SushiSwap", "FIL-USD": "Filecoin", "ICP-USD": "Internet Computer", "LUNA-USD": "Terra", "CEL-USD": "Celsius", "RVN-USD": "Ravencoin", "KSM-USD": "Kusama", "ENJ-USD": "Enjin Coin", "CHZ-USD": "Chiliz"
 }
 
-# --- Assets aus prognose.txt laden ---
+# --- Assets aus prognose.txt ---
 with open("prognose.txt", "r") as f:
     assets = [line.split()[0] for line in f if line.strip() and not line.startswith("#")]
 
-# --- Candlestick-Erkennung (erweitert) ---
+# --- Candlestick-Erkennung ---
 def detect_candlestick(df):
     if len(df) < 3:
         return "Neutral", "up", 50.0
+
     df = df.copy()
     df['Body'] = df['Close'] - df['Open']
     df['Range'] = df['High'] - df['Low']
+
     last = df.iloc[-1]
     prev = df.iloc[-2]
     prev2 = df.iloc[-3]
 
+    # alle Werte als float
     last_body = float(last['Body'])
     prev_body = float(prev['Body'])
     prev2_body = float(prev2['Body'])
@@ -39,52 +42,47 @@ def detect_candlestick(df):
     prev_open = float(prev['Open'])
     prev2_open = float(prev2['Open'])
     prev2_close = float(prev2['Close'])
+    last_range = float(last['Range'])
 
     pattern = "Neutral"
     trend = "up"
 
-    # --- Bullish / Bearish Engulfing ---
+    # --- Mustererkennung ---
     if prev_body < 0 and last_body > 0 and abs(last_body) > abs(prev_body):
         pattern = "Bullish Engulfing"
         trend = "up"
     elif prev_body > 0 and last_body < 0 and abs(last_body) > abs(prev_body):
         pattern = "Bearish Engulfing"
         trend = "down"
-    # --- Hammer / Hanging Man ---
-    elif last_body / last['Range'] < 0.3 and (last_close - last_low) / last['Range'] > 0.6:
+    elif last_range > 0 and last_body / last_range < 0.3 and (last_close - last_low)/last_range > 0.6:
         pattern = "Hammer/Hanging Man"
         trend = "up" if last_close > last_open else "down"
-    # --- Inverted Hammer / Shooting Star ---
-    elif last_body / last['Range'] < 0.3 and (last_high - last_close) / last['Range'] > 0.6:
+    elif last_range > 0 and last_body / last_range < 0.3 and (last_high - last_close)/last_range > 0.6:
         pattern = "Inverted Hammer / Shooting Star"
         trend = "up" if last_close > last_open else "down"
-    # --- Doji ---
-    elif abs(last_body) / last['Range'] < 0.1:
+    elif last_range > 0 and abs(last_body)/last_range < 0.1:
         pattern = "Doji"
         trend = "neutral"
-    # --- Piercing Line / Dark Cloud Cover ---
     elif prev_body < 0 and last_body > 0 and last_open < prev_close and last_close > prev_close*0.5:
         pattern = "Piercing Line"
         trend = "up"
     elif prev_body > 0 and last_body < 0 and last_open > prev_close and last_close < prev_close*0.5:
         pattern = "Dark Cloud Cover"
         trend = "down"
-    # --- Three White Soldiers / Three Black Crows ---
     elif prev2_body > 0 and prev_body > 0 and last_body > 0:
         pattern = "Three White Soldiers"
         trend = "up"
     elif prev2_body < 0 and prev_body < 0 and last_body < 0:
         pattern = "Three Black Crows"
         trend = "down"
-    # --- Spinning Top ---
-    elif abs(last_body) / last['Range'] < 0.3 and 0.3 < (last_close - last_low)/last['Range'] < 0.7:
+    elif last_range > 0 and abs(last_body)/last_range < 0.3 and 0.3 < (last_close - last_low)/last_range < 0.7:
         pattern = "Spinning Top"
         trend = "neutral"
     else:
         trend = "up" if last_close > last_open else "down"
 
-    # Realistische Confidence: max 80%, min 5%
-    confidence = max(min(abs(last_body) / last['Range'] * 100 * 0.8, 80), 5)
+    # Realistische Confidence
+    confidence = max(min(abs(last_body)/last_range * 100 * 0.8, 80), 5)
 
     return pattern, trend, round(confidence,2)
 
