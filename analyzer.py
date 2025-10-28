@@ -107,8 +107,8 @@ def detect_candlestick(df):
     confidence = max(min(abs(last_body)/last_range * 100 * 0.8, 80), 5)
     return pattern, trend, round(confidence, 2)
 
-# --- Daten laden ---
-def fetch_data(ticker, period="1mo", interval="1d"):
+# --- Daten laden (nur letzte 48 Stunden, 30-min-Intervalle) ---
+def fetch_data(ticker, period="2d", interval="30m"):
     try:
         df = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=True)
         if df.empty:
