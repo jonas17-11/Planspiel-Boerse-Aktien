@@ -14,11 +14,13 @@ WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
 def plot_candlestick_subplot(ax, df, name, trend_up=True, confidence=50):
     df_plot = df.copy()
     width = 0.02
-    for i, row in enumerate(df_plot.itertuples()):
-        open_price = float(row.Open)
-        close_price = float(row.Close)
-        high_price = float(row.High)
-        low_price = float(row.Low)
+    for i, row in df_plot.itertuples():
+        # robustes Auslesen der Spalten über getattr
+        open_price = float(getattr(row, 'Open', row[1]))
+        close_price = float(getattr(row, 'Close', row[4]))
+        high_price = float(getattr(row, 'High', row[2]))
+        low_price = float(getattr(row, 'Low', row[3]))
+
         color = 'green' if close_price >= open_price else 'red'
         ax.add_patch(Rectangle((i - width/2, min(open_price, close_price)),
                                width, abs(open_price - close_price), color=color))
