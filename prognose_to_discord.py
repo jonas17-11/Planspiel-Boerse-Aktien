@@ -7,23 +7,27 @@ import requests
 
 WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
 
-# --- Candlestick-Plot für einzelnes Asset ---
-def plot_candlestick(df):
-    df_plot = df[-30:].copy()  # letzte 30 Tage
-    fig, ax = plt.subplots(figsize=(10,4))
-    for idx, row in df_plot.iterrows():
-        open_price = float(row['Open'])
-        close_price = float(row['Close'])
-        high_price = float(row['High'])
-        low_price = float(row['Low'])
-        color = 'green' if close_price >= open_price else 'red'
-        ax.plot([idx, idx], [low_price, high_price], color='black', linewidth=1)
-        ax.add_patch(plt.Rectangle((idx - pd.Timedelta(hours=12), min(open_price, close_price)),
-                                   pd.Timedelta(hours=24), abs(open_price - close_price),
-                                   color=color))
-    ax.set_title("Candlestick Chart")
-    ax.set_ylabel("Preis")
-    ax.grid(True)
+# --- Candlestick-Diagramm in Subplots für alle Assets ---
+def plot_multiple_assets(assets):
+    n = len(assets)
+    fig, axes = plt.subplots(n, 1, figsize=(10, 4*n), sharex=False)
+    if n == 1:
+        axes = [axes]
+    for ax, a in zip(axes, assets):
+        df = a['df'][-30:].copy()  # letzte 30 Tage
+        for idx, row in df.iterrows():
+            open_price = float(row['Open'])
+            close_price = float(row['Close'])
+            high_price = float(row['High'])
+            low_price = float(row['Low'])
+            color = 'green' if close_price >= open_price else 'red'
+            ax.plot([idx, idx], [low_price, high_price], color='black', linewidth=1)
+            ax.add_patch(plt.Rectangle((idx - pd.Timedelta(hours=12), min(open_price, close_price)),
+                                       pd.Timedelta(hours=24), abs(open_price - close_price),
+                                       color=color))
+        ax.set_ylabel("Preis")
+        ax.set_title(f"{a['name']} - {a['pattern']} ({a['confidence']}%)")
+        ax.grid(True)
     plt.tight_layout()
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
@@ -47,20 +51,16 @@ def build_discord_message(top_up, top_down):
 # --- Posten an Discord ---
 def post_to_discord():
     top_up, top_down = analyze_and_predict_all()
-    all_assets = top_up + top_down
+    all_assets = sorted(top_up + top_down, key=lambda x: x['confidence'], reverse=True)[:10]  # Top 10
     if not all_assets:
         print("Keine relevanten Muster gefunden.")
         return
 
     message = build_discord_message(top_up, top_down)
-    payload = {"content": message}
-    files = []
+    buf = plot_multiple_assets(all_assets)
+    files = [("file", ("top_assets.png", buf, "image/png"))]
 
-    for a in all_assets:
-        buf = plot_candlestick(a['df'])
-        files.append(("file", (f"{a['ticker']}.png", buf, "image/png")))
-
-    response = requests.post(WEBHOOK_URL, data=payload, files=files)
+    response = requests.post(WEBHOOK_URL, data={"content": message}, files=files)
     if response.status_code in (200, 204):
         print("Erfolgreich in Discord gesendet ✅")
     else:
