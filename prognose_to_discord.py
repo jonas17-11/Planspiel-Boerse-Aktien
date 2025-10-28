@@ -1,14 +1,27 @@
 import os
 import io
+import numpy as np
 import matplotlib.pyplot as plt
 from analyzer import analyze_and_predict_all
 import requests
 
-WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")  # Discord Webhook
+WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
 
-def plot_asset(df, name, trend_up=True):
-    plt.figure(figsize=(8, 4))
-    plt.plot(df.index, df['Close'], label='Aktueller Kurs', color='blue')
+def plot_asset(df, name, trend_up=True, forecast_days=5):
+    plt.figure(figsize=(8,4))
+    plt.plot(df.index, df['Close'], label='Kurs', color='blue')
+
+    # --- Einfache Prognose ---
+    last_index = df.index[-1]
+    y = df['Close'].values
+    x = np.arange(len(y))
+    # lineare Regression (Trend)
+    coeffs = np.polyfit(x, y, 1)
+    forecast_x = np.arange(len(y), len(y)+forecast_days)
+    forecast_y = np.polyval(coeffs, forecast_x)
+    forecast_dates = pd.date_range(start=last_index, periods=forecast_days+1, freq='D')[1:]
+    plt.plot(forecast_dates, forecast_y, label='Prognose', linestyle='--', color='green' if trend_up else 'red')
+
     plt.title(f"{name} - Prognose")
     plt.xlabel("Datum")
     plt.ylabel("Preis")
@@ -27,9 +40,8 @@ def build_discord_message(top_up, top_down):
         message += "**📈 Top Steigende Assets:**\n"
         for a in top_up:
             message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n"
-        message += "\n"
     if top_down:
-        message += "**📉 Top Fallende Assets:**\n"
+        message += "\n**📉 Top Fallende Assets:**\n"
         for a in top_down:
             message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n"
     return message
@@ -37,20 +49,19 @@ def build_discord_message(top_up, top_down):
 def post_to_discord():
     top_up, top_down = analyze_and_predict_all()
     if not top_up and not top_down:
-        print("Keine relevanten Analyseergebnisse.")
+        print("Keine relevanten Muster gefunden.")
         return
 
     message = build_discord_message(top_up, top_down)
 
-    # Bilder nur für ausgewählte Assets
     files = []
     for a in top_up + top_down:
-        buf = plot_asset(a['df'], a['name'], trend_up=(a['trend']=='up'))
+        buf = plot_asset(a['df'], a['name'], trend_up=(a['trend']=="up"))
         files.append(("file", (f"{a['ticker']}.png", buf, "image/png")))
 
     payload = {"content": message}
     response = requests.post(WEBHOOK_URL, data=payload, files=files)
-    if response.status_code in (200, 204):
+    if response.status_code in (200,204):
         print("Erfolgreich in Discord gesendet ✅")
     else:
         print(f"Fehler beim Senden: {response.status_code} {response.text}")
