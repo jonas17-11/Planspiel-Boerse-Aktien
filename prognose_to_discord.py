@@ -1,13 +1,13 @@
 import os
 import io
 import matplotlib.pyplot as plt
-from analyzer import analyze_and_predict_all
 import requests
+from analyzer import analyze_and_predict_all
 
 WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")  # Discord Webhook
 
 def plot_asset(df, forecast_df, name, trend_up=True):
-    plt.figure(figsize=(8,4))
+    plt.figure(figsize=(8, 4))
     plt.plot(df.index, df['Close'], label='Aktueller Kurs', color='blue')
     plt.plot(forecast_df.index, forecast_df['Predicted'], 
              label='Prognose', color='green' if trend_up else 'red', linestyle='--')
@@ -23,38 +23,40 @@ def plot_asset(df, forecast_df, name, trend_up=True):
     buf.seek(0)
     return buf
 
-def build_discord_message(analysis):
-    rising = sorted([a for a in analysis if a['trend']=='up'], key=lambda x:x['confidence'], reverse=True)[:10]
-    falling = sorted([a for a in analysis if a['trend']=='down'], key=lambda x:x['confidence'], reverse=True)[:10]
+def build_discord_messages(top_up, top_down):
+    messages = []
 
-    message = "**📈 Top 10 Steigende Assets:**\n"
-    for a in rising:
-        message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n"
+    # Top Up
+    for a in top_up:
+        msg = f"📈 **{a['name']}**\nPattern: {a['pattern']}\nTrend: {a['trend']}\nConfidence: {a['confidence']}%"
+        messages.append((msg, a))
 
-    message += "\n**📉 Top 10 Fallende Assets:**\n"
-    for a in falling:
-        message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n"
+    # Top Down
+    for a in top_down:
+        msg = f"📉 **{a['name']}**\nPattern: {a['pattern']}\nTrend: {a['trend']}\nConfidence: {a['confidence']}%"
+        messages.append((msg, a))
 
-    return message, rising + falling
+    return messages
 
 def post_to_discord():
-    analysis = analyze_and_predict_all()
-    if not analysis:
+    top_up, top_down = analyze_and_predict_all()
+    if not top_up and not top_down:
         print("Keine Analyseergebnisse.")
         return
 
-    message, assets_to_plot = build_discord_message(analysis)
+    messages = build_discord_messages(top_up, top_down)
 
-    files = []
-    for a in assets_to_plot:
-        buf = plot_asset(a['df'], a['forecast_df'], a['name'], trend_up=(a['trend']=='up'))
-        files.append(("file", (f"{a['ticker']}.png", buf, "image/png")))
+    for msg, asset in messages:
+        files = []
+        buf = plot_asset(asset['df'], asset['forecast_df'], asset['name'], trend_up=(asset['trend']=='up'))
+        files.append(("file", (f"{asset['ticker']}.png", buf, "image/png")))
 
-    response = requests.post(WEBHOOK_URL, data={"content": message}, files=files)
-    if response.status_code in (200,204):
-        print("Erfolgreich in Discord gesendet ✅")
-    else:
-        print(f"Fehler beim Senden: {response.status_code} {response.text}")
+        payload = {"content": msg}
+        response = requests.post(WEBHOOK_URL, data=payload, files=files)
+        if response.status_code in (200, 204):
+            print(f"Erfolgreich gesendet: {asset['name']}")
+        else:
+            print(f"Fehler beim Senden: {response.status_code} {response.text}")
 
 if __name__ == "__main__":
     post_to_discord()
