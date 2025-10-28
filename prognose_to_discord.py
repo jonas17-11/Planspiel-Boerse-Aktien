@@ -1,57 +1,51 @@
 import os
 import io
-import pandas as pd
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+from matplotlib.colors import to_rgba
 from analyzer import analyze_and_predict_all
 import requests
 
 WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
 
-def plot_multiple_assets_with_forecast(assets, forecast_days=5):
-    n = len(assets)
-    fig, axes = plt.subplots(n, 1, figsize=(10, 4*n), sharex=False)
-    if n == 1:
-        axes = [axes]
+# --- Candlestick-Subplot-Funktion ---
+def plot_candlestick_subplot(ax, df, name, trend_up=True, confidence=50):
+    df_plot = df.copy()
+    width = 0.02
+    for i, row in enumerate(df_plot.itertuples()):
+        open_price = float(row.Open)
+        close_price = float(row.Close)
+        high_price = float(row.High)
+        low_price = float(row.Low)
+        color = 'green' if close_price >= open_price else 'red'
+        ax.add_patch(Rectangle((i - width/2, min(open_price, close_price)),
+                               width, abs(open_price - close_price), color=color))
+        ax.vlines(i, low_price, high_price, color=color, linewidth=1)
+    
+    ax.set_title(name)
+    ax.set_ylabel("Preis")
+    ax.set_xticks([])
 
-    for ax, a in zip(axes, assets):
-        df = a['df'][-30:].copy()  # letzte 30 Tage
-        # --- Candlestick ---
-        for idx, row in df.iterrows():
-            open_price = float(row['Open'])
-            close_price = float(row['Close'])
-            high_price = float(row['High'])
-            low_price = float(row['Low'])
-            color = 'green' if close_price >= open_price else 'red'
-            ax.plot([idx, idx], [low_price, high_price], color='black', linewidth=1)
-            ax.add_patch(plt.Rectangle(
-                (idx - pd.Timedelta(hours=12), min(open_price, close_price)),
-                pd.Timedelta(hours=24),
-                abs(open_price - close_price),
-                color=color
-            ))
+    # --- Dynamischer Prognosepfeil leicht nach rechts versetzt ---
+    y_top = df_plot['High'].max()
+    y_range = df_plot['High'].max() - df_plot['Low'].min()
+    arrow_height = y_range * 0.1 * (confidence / 100)
 
-        # --- Prognose ---
-        last_close = df['Close'].values[-1]
-        confidence_factor = a['confidence'] / 100
-        # lineare Prognose proportional zur Confidence
-        direction = 1 if a['trend'] == 'up' else -1
-        forecast_values = last_close + direction * last_close * 0.02 * confidence_factor * np.arange(1, forecast_days+1)
-        forecast_dates = pd.date_range(start=df.index[-1], periods=forecast_days+1, freq='D')[1:]
-        ax.plot(forecast_dates, forecast_values, linestyle='--', color='green' if direction == 1 else 'red', label='Prognose')
+    base_color = np.array(to_rgba('green' if trend_up else 'red'))
+    intensity = 0.4 + 0.6*(confidence/100)
+    arrow_color = tuple(base_color[:3]*intensity) + (1.0,)
 
-        ax.set_ylabel("Preis")
-        ax.set_title(f"{a['name']} - {a['pattern']} ({a['confidence']}%)")
-        ax.grid(True)
-        ax.legend()
+    ax.annotate('',
+                xy=(len(df_plot)-1 + 0.5, y_top + arrow_height),
+                xytext=(len(df_plot)-1 + 0.5, y_top),
+                arrowprops=dict(facecolor=arrow_color, edgecolor=arrow_color, shrink=0.05, width=3, headwidth=8))
 
-    plt.tight_layout()
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    plt.close()
-    buf.seek(0)
-    return buf
+    trend_text = "Aufwärts" if trend_up else "Abwärts"
+    ax.text(0.5, -0.15, f"Prognose: {trend_text} {confidence}%", ha='center', va='center', transform=ax.transAxes)
 
+# --- Discord-Nachricht bauen ---
 def build_discord_message(top_up, top_down):
     message = ""
     if top_up:
@@ -64,19 +58,35 @@ def build_discord_message(top_up, top_down):
             message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n"
     return message
 
+# --- Alles analysieren und posten ---
 def post_to_discord():
     top_up, top_down = analyze_and_predict_all()
-    all_assets = sorted(top_up + top_down, key=lambda x: x['confidence'], reverse=True)[:10]
+    all_assets = top_up + top_down
     if not all_assets:
         print("Keine relevanten Muster gefunden.")
         return
 
     message = build_discord_message(top_up, top_down)
-    buf = plot_multiple_assets_with_forecast(all_assets)
-    files = [("file", ("top_assets_forecast.png", buf, "image/png"))]
 
-    response = requests.post(WEBHOOK_URL, data={"content": message}, files=files)
-    if response.status_code in (200, 204):
+    # --- Subplots für alle Top-Assets in einem Bild ---
+    n = len(all_assets)
+    fig, axes = plt.subplots(n, 1, figsize=(10, 3*n), constrained_layout=True)
+    if n == 1:
+        axes = [axes]
+
+    for ax, a in zip(axes, all_assets):
+        plot_candlestick_subplot(ax, a['df'], a['name'], trend_up=(a['trend']=="up"), confidence=a['confidence'])
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close()
+    buf.seek(0)
+
+    payload = {"content": message}
+    files = [("file", ("top_assets.png", buf, "image/png"))]
+
+    response = requests.post(WEBHOOK_URL, data=payload, files=files)
+    if response.status_code in (200,204):
         print("Erfolgreich in Discord gesendet ✅")
     else:
         print(f"Fehler beim Senden: {response.status_code} {response.text}")
