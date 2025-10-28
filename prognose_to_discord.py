@@ -8,86 +8,48 @@ import requests
 
 WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
 
-def plot_all_assets(top_up, top_down, forecast_days=5):
-    plt.figure(figsize=(12,6))
+def plot_all_assets(assets, forecast_days=5):
+    """Alle Assets in einem Bild untereinander plotten mit Richtungspfeilen"""
+    n = len(assets)
+    fig, axes = plt.subplots(n, 1, figsize=(8, 4*n), sharex=False)
+    
+    if n == 1:
+        axes = [axes]  # Damit es immer iterierbar ist
 
-    plotted_labels = set()
-
-    ax = plt.gca()
-
-    # --- Hintergrund einfärben ---
-    if top_up:
-        ax.axhspan(0, 1, facecolor='green', alpha=0.05, zorder=0)
-    if top_down:
-        ax.axhspan(0, 1, facecolor='red', alpha=0.05, zorder=0)
-
-    # --- Alle steigenden Assets ---
-    for a in top_up:
+    for ax, a in zip(axes, assets):
         df = a['df']
-        label_course = f"{a['name']} Kurs"
-        if label_course not in plotted_labels:
-            ax.plot(df.index, df['Close'], label=label_course, linewidth=1.5)
-            plotted_labels.add(label_course)
-        else:
-            ax.plot(df.index, df['Close'], linewidth=1.5, color='blue')
-
-        # lineare Prognose
+        name = a['name']
+        trend_up = (a['trend'] == "up")
+        symbol = "📈" if trend_up else "📉"
+        
+        ax.plot(df.index, df['Close'], label='Kurs', color='blue')
+        
+        # Lineare Prognose
         y = df['Close'].values
         x = np.arange(len(y))
         coeffs = np.polyfit(x, y, 1)
         forecast_x = np.arange(len(y), len(y)+forecast_days)
         forecast_y = np.polyval(coeffs, forecast_x)
+        # Prognose auf letzten Kurs verschieben
         shift = y[-1] - forecast_y[0]
         forecast_y += shift
         forecast_dates = pd.date_range(start=df.index[-1], periods=forecast_days+1, freq='D')[1:]
+        ax.plot(forecast_dates, forecast_y, linestyle='--', color='green' if trend_up else 'red',
+                label='Prognose', marker='o', markersize=4)
+        
+        # Richtungssymbol oberhalb der Prognose
+        ax.text(forecast_dates[-1], forecast_y[-1]*1.01, symbol, fontsize=16, ha='center')
 
-        label_forecast = f"{a['name']} Prognose ↑"
-        if label_forecast not in plotted_labels:
-            ax.plot(forecast_dates, forecast_y, linestyle='--', color='green', linewidth=2, marker='o', markersize=5, label=label_forecast)
-            plotted_labels.add(label_forecast)
-        else:
-            ax.plot(forecast_dates, forecast_y, linestyle='--', color='green', linewidth=2, marker='o', markersize=5)
-
-    # --- Alle fallenden Assets ---
-    for a in top_down:
-        df = a['df']
-        label_course = f"{a['name']} Kurs"
-        if label_course not in plotted_labels:
-            ax.plot(df.index, df['Close'], label=label_course, linewidth=1.5)
-            plotted_labels.add(label_course)
-        else:
-            ax.plot(df.index, df['Close'], linewidth=1.5, color='blue')
-
-        # lineare Prognose
-        y = df['Close'].values
-        x = np.arange(len(y))
-        coeffs = np.polyfit(x, y, 1)
-        forecast_x = np.arange(len(y), len(y)+forecast_days)
-        forecast_y = np.polyval(coeffs, forecast_x)
-        shift = y[-1] - forecast_y[0]
-        forecast_y += shift
-        forecast_dates = pd.date_range(start=df.index[-1], periods=forecast_days+1, freq='D')[1:]
-
-        label_forecast = f"{a['name']} Prognose ↓"
-        if label_forecast not in plotted_labels:
-            ax.plot(forecast_dates, forecast_y, linestyle='--', color='red', linewidth=2, marker='o', markersize=5, label=label_forecast)
-            plotted_labels.add(label_forecast)
-        else:
-            ax.plot(forecast_dates, forecast_y, linestyle='--', color='red', linewidth=2, marker='o', markersize=5)
-
-    ax.set_title("Top Assets - Prognosen", fontsize=14)
-    ax.set_xlabel("Datum")
-    ax.set_ylabel("Preis")
-    ax.grid(True, linestyle=':', alpha=0.5)
-
-    # --- Übersichtliche Legende ---
-    handles, labels = ax.get_legend_handles_labels()
-    by_label = dict(zip(labels, handles))
-    ax.legend(by_label.values(), by_label.keys(), fontsize=8, loc='upper left', bbox_to_anchor=(1,1))
-
+        ax.set_title(f"{name} - {a['pattern']} ({a['confidence']}%)")
+        ax.set_ylabel("Preis")
+        ax.grid(True, linestyle=':', alpha=0.5)
+        ax.legend()
+    
+    plt.xlabel("Datum")
     plt.tight_layout()
+    
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.savefig(buf, format='png')
     plt.close()
     buf.seek(0)
     return buf
@@ -106,15 +68,18 @@ def build_discord_message(top_up, top_down):
 
 def post_to_discord():
     top_up, top_down = analyze_and_predict_all()
-    if not top_up and not top_down:
+    all_assets = top_up + top_down
+    if not all_assets:
         print("Keine relevanten Muster gefunden.")
         return
 
     message = build_discord_message(top_up, top_down)
-    buf = plot_all_assets(top_up, top_down)
+
+    # Alle Diagramme in einem Bild
+    buf = plot_all_assets(all_assets)
+    files = [("file", ("prognosen.png", buf, "image/png"))]
 
     payload = {"content": message}
-    files = [("file", ("top_assets.png", buf, "image/png"))]
     response = requests.post(WEBHOOK_URL, data=payload, files=files)
     
     if response.status_code in (200,204):
