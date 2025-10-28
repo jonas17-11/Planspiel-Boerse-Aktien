@@ -1,6 +1,5 @@
 import yfinance as yf
 import pandas as pd
-import numpy as np
 
 # --- Mapping Ticker -> Ausgeschriebener Name ---
 ASSET_NAMES = {
@@ -105,10 +104,10 @@ ASSET_NAMES = {
 with open("prognose.txt", "r") as f:
     assets = [line.split()[0] for line in f if line.strip() and not line.startswith("#")]
 
-# --- Candlestick-Erkennung mit mehreren Patterns ---
+# --- Candlestick-Erkennung ---
 def detect_candlestick(df):
     if len(df) < 2:
-        return "Neutral", "up", 50.0
+        return "Neutral", "neutral", 0.0
 
     df = df.copy()
     df['Body'] = df['Close'] - df['Open']
@@ -124,33 +123,41 @@ def detect_candlestick(df):
     prev_body = float(prev['Close']) - float(prev['Open'])
 
     pattern = "Neutral"
-    trend = "up"
+    trend = "neutral"
+    confidence = 0.0
 
     # Bullish Engulfing
     if prev_body < 0 < last_body and abs(last_body) > abs(prev_body):
         pattern = "Bullish Engulfing"
         trend = 'up'
+        confidence = min(abs(last_body) / last['Close'] * 100 * 0.8, 90)
     # Bearish Engulfing
     elif prev_body > 0 > last_body and abs(last_body) > abs(prev_body):
         pattern = "Bearish Engulfing"
         trend = 'down'
+        confidence = min(abs(last_body) / last['Close'] * 100 * 0.8, 90)
     # Hammer
     elif last_body > 0 and (last_high - last_close) >= 2 * last_body and (last_close - last_low) <= 0.25 * last_body:
         pattern = "Hammer"
         trend = 'up'
+        confidence = min(abs(last_body) / last['Close'] * 100 * 0.6, 80)
     # Shooting Star
     elif last_body < 0 and (last_high - last_open) >= 2 * abs(last_body) and (last_close - last_low) <= 0.25 * abs(last_body):
         pattern = "Shooting Star"
         trend = 'down'
+        confidence = min(abs(last_body) / last['Close'] * 100 * 0.6, 80)
     # Doji
     elif abs(last_body) <= 0.1 * (last_high - last_low):
         pattern = "Doji"
         trend = "neutral"
+        confidence = min((abs(last_body)/(last_high-last_low))*100, 50)
+    # Keine klare Kerze
     else:
+        pattern = "Neutral"
         trend = 'up' if last_close > last_open else 'down'
+        confidence = min(abs(last_body)/(last_high-last_low)*100, 50)
 
-    confidence = min(abs(last_body) / (last_open if last_open != 0 else 1) * 100 * 2, 100)
-    return pattern, trend, round(confidence, 2)
+    return pattern, trend, round(confidence,2)
 
 # --- Daten laden ---
 def fetch_data(ticker, period="1mo", interval="1d"):
@@ -169,6 +176,8 @@ def analyze_and_predict_all():
         if df is None or df.empty:
             continue
         pattern, trend, confidence = detect_candlestick(df)
+        if pattern == "Neutral":
+            continue  # Neutral ausblenden
         results.append({
             "ticker": ticker,
             "name": ASSET_NAMES.get(ticker, ticker),
@@ -178,6 +187,6 @@ def analyze_and_predict_all():
             "df": df
         })
 
-    top_up = sorted([r for r in results if r['trend']=='up'], key=lambda x:x['confidence'], reverse=True)[:5]
-    top_down = sorted([r for r in results if r['trend']=='down'], key=lambda x:x['confidence'], reverse=True)[:5]
+    top_up = sorted([r for r in results if r['trend']=='up'], key=lambda x:x['confidence'], reverse=True)
+    top_down = sorted([r for r in results if r['trend']=='down'], key=lambda x:x['confidence'], reverse=True)
     return top_up, top_down
