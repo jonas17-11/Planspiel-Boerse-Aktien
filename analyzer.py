@@ -4,13 +4,33 @@ import numpy as np
 
 # --- Asset Names ---
 ASSET_NAMES = {
-     # Währungen (Forex)
-    "EURUSD=X": "Euro / US-Dollar", "USDJPY=X": "US-Dollar / Japanischer Yen", "GBPUSD=X": "Britisches Pfund / US-Dollar", "AUDUSD=X": "Australischer Dollar / US-Dollar", "USDCAD=X": "US-Dollar / Kanadischer Dollar", "USDCHF=X": "US-Dollar / Schweizer Franken", "NZDUSD=X": "Neuseeland-Dollar / US-Dollar", "EURGBP=X": "Euro / Britisches Pfund", "EURJPY=X": "Euro / Japanischer Yen", "EURCHF=X": "Euro / Schweizer Franken", "GBPJPY=X": "Britisches Pfund / Japanischer Yen", "AUDJPY=X": "Australischer Dollar / Japanischer Yen", "CHFJPY=X": "Schweizer Franken / Japanischer Yen", "EURNZD=X": "Euro / Neuseeland-Dollar", "USDNOK=X": "US-Dollar / Norwegische Krone", "USDDKK=X": "US-Dollar / Dänische Krone", "USDSEK=X": "US-Dollar / Schwedische Krone", "USDTRY=X": "US-Dollar / Türkische Lira", "USDMXN=X": "US-Dollar / Mexikanischer Peso", "USDCNH=X": "US-Dollar / Chinesischer Yuan", "GBPAUD=X": "Britisches Pfund / Australischer Dollar", "EURAUD=X": "Euro / Australischer Dollar", "EURCAD=X": "Euro / Kanadischer Dollar", # Edelmetalle & Rohstoffe 
-    "XAUUSD": "Gold", "XAGUSD": "Silber", "XPTUSD": "Platin", "XPDUSD": "Palladium", "WTI": "Rohöl (West Texas)", "BRENT": "Brent-Öl", "NG=F": "Erdgas", "HG=F": "Kupfer", "SI=F": "Silber (Futures)", "GC=F": "Gold (Futures)", "CL=F": "Crude Oil (Futures)", "PL=F": "Platin (Futures)", "PA=F": "Palladium (Futures)", "ZC=F": "Mais (Futures)", "ZS=F": "Sojabohnen (Futures)", "ZR=F": "Weizen (Futures)", "KC=F": "Kaffee", "SB=F": "Zucker", "CT=F": "Baumwolle", 
-    # Indizes 
-    "^GSPC": "S&P 500", "^DJI": "Dow Jones", "^IXIC": "Nasdaq 100", "^GDAXI": "DAX 40", "^FCHI": "CAC 40", "^FTSE": "FTSE 100", "^N225": "Nikkei 225", "^HSI": "Hang Seng (Hong Kong)", "000001.SS": "Shanghai Composite", "^BVSP": "Bovespa", "^GSPTSE": "TSX Kanada", "^SSMI": "SMI Schweiz", "^AS51": "ASX 200 Australien", "^MXX": "IPC Mexiko", "^STOXX50E": "Euro Stoxx 50", "^IBEX": "IBEX 35 Spanien", "^NSEI": "Nifty 50 Indien", 
-    # Kryptowährungen 
-    "BTC-USD": "Bitcoin", "ETH-USD": "Ethereum", "BNB-USD": "Binance Coin", "SOL-USD": "Solana", "XRP-USD": "Ripple", "ADA-USD": "Cardano", "DOGE-USD": "Dogecoin", "DOT-USD": "Polkadot", "AVAX-USD": "Avalanche", "LTC-USD": "Litecoin", "TRX-USD": "Tron", "LINK-USD": "Chainlink", "ATOM-USD": "Cosmos", "MATIC-USD": "Polygon", "UNI-USD": "Uniswap", "EOS-USD": "EOS", "FTT-USD": "FTX Token", "ALGO-USD": "Algorand", "XTZ-USD": "Tezos", "NEO-USD": "NEO", "AAVE-USD": "Aave", "COMP-USD": "Compound", "MKR-USD": "Maker", "SUSHI-USD": "SushiSwap", "FIL-USD": "Filecoin", "ICP-USD": "Internet Computer", "LUNA-USD": "Terra", "CEL-USD": "Celsius", "RVN-USD": "Ravencoin", "KSM-USD": "Kusama", "ENJ-USD": "Enjin Coin", "CHZ-USD": "Chiliz"
+    # Währungen (Forex)
+    "EURUSD=X": "Euro / US-Dollar", "USDJPY=X": "US-Dollar / Japanischer Yen", "GBPUSD=X": "Britisches Pfund / US-Dollar",
+    "AUDUSD=X": "Australischer Dollar / US-Dollar", "USDCAD=X": "US-Dollar / Kanadischer Dollar", "USDCHF=X": "US-Dollar / Schweizer Franken",
+    "NZDUSD=X": "Neuseeland-Dollar / US-Dollar", "EURGBP=X": "Euro / Britisches Pfund", "EURJPY=X": "Euro / Japanischer Yen",
+    "EURCHF=X": "Euro / Schweizer Franken", "GBPJPY=X": "Britisches Pfund / Japanischer Yen", "AUDJPY=X": "Australischer Dollar / Japanischer Yen",
+    "CHFJPY=X": "Schweizer Franken / Japanischer Yen", "EURNZD=X": "Euro / Neuseeland-Dollar", "USDNOK=X": "US-Dollar / Norwegische Krone",
+    "USDDKK=X": "US-Dollar / Dänische Krone", "USDSEK=X": "US-Dollar / Schwedische Krone", "USDTRY=X": "US-Dollar / Türkische Lira",
+    "USDMXN=X": "US-Dollar / Mexikanischer Peso", "USDCNH=X": "US-Dollar / Chinesischer Yuan", "GBPAUD=X": "Britisches Pfund / Australischer Dollar",
+    "EURAUD=X": "Euro / Australischer Dollar", "EURCAD=X": "Euro / Kanadischer Dollar",
+    # Edelmetalle & Rohstoffe
+    "XAUUSD": "Gold", "XAGUSD": "Silber", "XPTUSD": "Platin", "XPDUSD": "Palladium", "WTI": "Rohöl (West Texas)", "BRENT": "Brent-Öl",
+    "NG=F": "Erdgas", "HG=F": "Kupfer", "SI=F": "Silber (Futures)", "GC=F": "Gold (Futures)", "CL=F": "Crude Oil (Futures)",
+    "PL=F": "Platin (Futures)", "PA=F": "Palladium (Futures)", "ZC=F": "Mais (Futures)", "ZS=F": "Sojabohnen (Futures)",
+    "ZR=F": "Weizen (Futures)", "KC=F": "Kaffee", "SB=F": "Zucker", "CT=F": "Baumwolle",
+    # Indizes
+    "^GSPC": "S&P 500", "^DJI": "Dow Jones", "^IXIC": "Nasdaq 100", "^GDAXI": "DAX 40", "^FCHI": "CAC 40", "^FTSE": "FTSE 100",
+    "^N225": "Nikkei 225", "^HSI": "Hang Seng (Hong Kong)", "000001.SS": "Shanghai Composite", "^BVSP": "Bovespa",
+    "^GSPTSE": "TSX Kanada", "^SSMI": "SMI Schweiz", "^AS51": "ASX 200 Australien", "^MXX": "IPC Mexiko", "^STOXX50E": "Euro Stoxx 50",
+    "^IBEX": "IBEX 35 Spanien", "^NSEI": "Nifty 50 Indien",
+    # Kryptowährungen
+    "BTC-USD": "Bitcoin", "ETH-USD": "Ethereum", "BNB-USD": "Binance Coin", "SOL-USD": "Solana", "XRP-USD": "Ripple",
+    "ADA-USD": "Cardano", "DOGE-USD": "Dogecoin", "DOT-USD": "Polkadot", "AVAX-USD": "Avalanche", "LTC-USD": "Litecoin",
+    "TRX-USD": "Tron", "LINK-USD": "Chainlink", "ATOM-USD": "Cosmos", "MATIC-USD": "Polygon", "UNI-USD": "Uniswap",
+    "EOS-USD": "EOS", "FTT-USD": "FTX Token", "ALGO-USD": "Algorand", "XTZ-USD": "Tezos", "NEO-USD": "NEO",
+    "AAVE-USD": "Aave", "COMP-USD": "Compound", "MKR-USD": "Maker", "SUSHI-USD": "SushiSwap", "FIL-USD": "Filecoin",
+    "ICP-USD": "Internet Computer", "LUNA-USD": "Terra", "CEL-USD": "Celsius", "RVN-USD": "Ravencoin", "KSM-USD": "Kusama",
+    "ENJ-USD": "Enjin Coin", "CHZ-USD": "Chiliz"
 }
 
 # --- Assets aus prognose.txt ---
@@ -30,19 +50,22 @@ def detect_candlestick(df):
     prev = df.iloc[-2]
     prev2 = df.iloc[-3]
 
-    # alle Werte als float
-    last_body = float(last['Body'])
-    prev_body = float(prev['Body'])
-    prev2_body = float(prev2['Body'])
-    last_open = float(last['Open'])
-    last_close = float(last['Close'])
-    last_high = float(last['High'])
-    last_low = float(last['Low'])
-    prev_close = float(prev['Close'])
-    prev_open = float(prev['Open'])
-    prev2_open = float(prev2['Open'])
-    prev2_close = float(prev2['Close'])
-    last_range = float(last['Range'])
+    # --- float-Konvertierung für Pandas Series ---
+    def to_float(val):
+        return float(val.iloc[0]) if isinstance(val, pd.Series) else float(val)
+
+    last_body = to_float(last['Body'])
+    prev_body = to_float(prev['Body'])
+    prev2_body = to_float(prev2['Body'])
+    last_open = to_float(last['Open'])
+    last_close = to_float(last['Close'])
+    last_high = to_float(last['High'])
+    last_low = to_float(last['Low'])
+    prev_close = to_float(prev['Close'])
+    prev_open = to_float(prev['Open'])
+    prev2_open = to_float(prev2['Open'])
+    prev2_close = to_float(prev2['Close'])
+    last_range = to_float(last['Range'])
 
     pattern = "Neutral"
     trend = "up"
@@ -81,10 +104,8 @@ def detect_candlestick(df):
     else:
         trend = "up" if last_close > last_open else "down"
 
-    # Realistische Confidence
     confidence = max(min(abs(last_body)/last_range * 100 * 0.8, 80), 5)
-
-    return pattern, trend, round(confidence,2)
+    return pattern, trend, round(confidence, 2)
 
 # --- Daten laden ---
 def fetch_data(ticker, period="1mo", interval="1d"):
