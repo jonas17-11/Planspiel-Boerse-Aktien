@@ -8,38 +8,30 @@ import requests
 
 WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
 
-# --- Candlestick Subplot für einzelne Axes ---
-def plot_candlestick_subplot(ax, df, trend_up=True, pattern="", confidence=0, y_min=None, y_max=None):
-    df_plot = df.copy().tail(30)  # letzte 30 Tage
+# --- Candlestick subplot ---
+def plot_candlestick_subplot(ax, df_plot, trend_up=True, pattern="", confidence=0, y_min=None, y_max=None):
+    if df_plot.empty:
+        return
+
     width = 0.6
+    width2 = 0.1
 
-    for i, row in enumerate(df_plot.itertuples()):
-        open_price = float(row.Open)
-        close_price = float(row.Close)
-        high_price = float(row.High)
-        low_price = float(row.Low)
+    for idx, row in df_plot.iterrows():
+        open_price = float(row['Open'])
+        close_price = float(row['Close'])
+        high_price = float(row['High'])
+        low_price = float(row['Low'])
         color = 'green' if close_price >= open_price else 'red'
-        # Kerze
-        ax.vlines(i, low_price, high_price, color=color, linewidth=1)
-        ax.add_patch(plt.Rectangle((i-width/2, min(open_price, close_price)),
-                                   width,
-                                   abs(close_price - open_price),
-                                   color=color))
 
-    # Trendlinie (einfach linear)
-    y = df_plot['Close'].values
-    x = np.arange(len(y))
-    coeffs = np.polyfit(x, y, 1)
-    forecast_x = np.arange(len(y), len(y)+5)
-    forecast_y = np.polyval(coeffs, forecast_x)
-    forecast_dates = pd.date_range(start=df_plot.index[-1], periods=6, freq='D')[1:]
-    ax.plot(range(len(y), len(y)+5), forecast_y, linestyle='--', color='green' if trend_up else 'red')
+        ax.plot([idx, idx], [low_price, high_price], color='black', linewidth=1)
+        ax.add_patch(plt.Rectangle((idx - pd.Timedelta(days=width/2), min(open_price, close_price)),
+                                   width, abs(close_price - open_price), color=color))
 
-    ax.set_xlim(-1, len(y)+5)
     if y_min is not None and y_max is not None:
         ax.set_ylim(float(y_min), float(y_max))
-    ax.set_xticks([])
-    ax.set_ylabel("Preis")
+
+    ax.set_xlim(df_plot.index.min() - pd.Timedelta(days=1), df_plot.index.max() + pd.Timedelta(days=1))
+    ax.grid(True)
 
 # --- Discord Nachricht ---
 def build_discord_message(top_up, top_down):
@@ -54,7 +46,7 @@ def build_discord_message(top_up, top_down):
             message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n"
     return message
 
-# --- Hauptfunktion ---
+# --- Alles posten ---
 def post_to_discord():
     top_up, top_down = analyze_and_predict_all()
 
@@ -78,12 +70,16 @@ def post_to_discord():
 
     message = build_discord_message(top_up, top_down)
 
-    # Gemeinsame Y-Achse
-    all_prices = pd.concat([a['df']['Close'] for a in all_assets])
-    y_min = float(all_prices.min().item())
-    y_max = float(all_prices.max().item())
+    # Gemeinsame Y-Achse nur wenn Preise vorhanden sind
+    price_frames = [a['df']['Close'] for a in all_assets if not a['df'].empty]
+    if price_frames:
+        all_prices = pd.concat(price_frames)
+        y_min = float(all_prices.min())
+        y_max = float(all_prices.max())
+    else:
+        y_min, y_max = None, None
 
-    # Alle Assets in einem Bild
+    # Alle Assets in einem Bild untereinander
     num_assets = len(all_assets)
     fig, axes = plt.subplots(num_assets, 1, figsize=(12, 4*num_assets), constrained_layout=True)
     if num_assets == 1:
