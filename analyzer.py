@@ -4,97 +4,13 @@ import numpy as np
 
 # --- Mapping Ticker -> Name ---
 ASSET_NAMES = {
-    "EURUSD=X": "Euro / US-Dollar",
-    "USDJPY=X": "US-Dollar / Japanischer Yen",
-    "GBPUSD=X": "Britisches Pfund / US-Dollar",
-    "AUDUSD=X": "Australischer Dollar / US-Dollar",
-    "USDCAD=X": "US-Dollar / Kanadischer Dollar",
-    "USDCHF=X": "US-Dollar / Schweizer Franken",
-    "NZDUSD=X": "Neuseeland-Dollar / US-Dollar",
-    "EURGBP=X": "Euro / Britisches Pfund",
-    "EURJPY=X": "Euro / Japanischer Yen",
-    "EURCHF=X": "Euro / Schweizer Franken",
-    "GBPJPY=X": "Britisches Pfund / Japanischer Yen",
-    "AUDJPY=X": "Australischer Dollar / Japanischer Yen",
-    "CHFJPY=X": "Schweizer Franken / Japanischer Yen",
-    "EURNZD=X": "Euro / Neuseeland-Dollar",
-    "USDNOK=X": "US-Dollar / Norwegische Krone",
-    "USDDKK=X": "US-Dollar / Dänische Krone",
-    "USDSEK=X": "US-Dollar / Schwedische Krone",
-    "USDTRY=X": "US-Dollar / Türkische Lira",
-    "USDMXN=X": "US-Dollar / Mexikanischer Peso",
-    "USDCNH=X": "US-Dollar / Chinesischer Yuan",
-    "GBPAUD=X": "Britisches Pfund / Australischer Dollar",
-    "EURAUD=X": "Euro / Australischer Dollar",
-    "EURCAD=X": "Euro / Kanadischer Dollar",
-    "XAUUSD": "Gold",
-    "XAGUSD": "Silber",
-    "XPTUSD": "Platin",
-    "XPDUSD": "Palladium",
-    "WTI": "Rohöl (West Texas)",
-    "BRENT": "Brent-Öl",
-    "NG=F": "Erdgas",
-    "HG=F": "Kupfer",
-    "SI=F": "Silber (Futures)",
-    "GC=F": "Gold (Futures)",
-    "CL=F": "Crude Oil (Futures)",
-    "PL=F": "Platin (Futures)",
-    "PA=F": "Palladium (Futures)",
-    "ZC=F": "Mais (Futures)",
-    "ZS=F": "Sojabohnen (Futures)",
-    "ZR=F": "Weizen (Futures)",
-    "KC=F": "Kaffee",
-    "SB=F": "Zucker",
-    "CT=F": "Baumwolle",
-    "^GSPC": "S&P 500",
-    "^DJI": "Dow Jones",
-    "^IXIC": "Nasdaq 100",
-    "^GDAXI": "DAX 40",
-    "^FCHI": "CAC 40",
-    "^FTSE": "FTSE 100",
-    "^N225": "Nikkei 225",
-    "^HSI": "Hang Seng (Hong Kong)",
-    "000001.SS": "Shanghai Composite",
-    "^BVSP": "Bovespa",
-    "^GSPTSE": "TSX Kanada",
-    "^SSMI": "SMI Schweiz",
-    "^AS51": "ASX 200 Australien",
-    "^MXX": "IPC Mexiko",
-    "^STOXX50E": "Euro Stoxx 50",
-    "^IBEX": "IBEX 35 Spanien",
-    "^NSEI": "Nifty 50 Indien",
-    "BTC-USD": "Bitcoin",
-    "ETH-USD": "Ethereum",
-    "BNB-USD": "Binance Coin",
-    "SOL-USD": "Solana",
-    "XRP-USD": "Ripple",
-    "ADA-USD": "Cardano",
-    "DOGE-USD": "Dogecoin",
-    "DOT-USD": "Polkadot",
-    "AVAX-USD": "Avalanche",
-    "LTC-USD": "Litecoin",
-    "TRX-USD": "Tron",
-    "LINK-USD": "Chainlink",
-    "ATOM-USD": "Cosmos",
-    "MATIC-USD": "Polygon",
-    "UNI-USD": "Uniswap",
-    "EOS-USD": "EOS",
-    "FTT-USD": "FTX Token",
-    "ALGO-USD": "Algorand",
-    "XTZ-USD": "Tezos",
-    "NEO-USD": "NEO",
-    "AAVE-USD": "Aave",
-    "COMP-USD": "Compound",
-    "MKR-USD": "Maker",
-    "SUSHI-USD": "SushiSwap",
-    "FIL-USD": "Filecoin",
-    "ICP-USD": "Internet Computer",
-    "LUNA-USD": "Terra",
-    "CEL-USD": "Celsius",
-    "RVN-USD": "Ravencoin",
-    "KSM-USD": "Kusama",
-    "ENJ-USD": "Enjin Coin",
-    "CHZ-USD": "Chiliz"
+     # Währungen (Forex)
+    "EURUSD=X": "Euro / US-Dollar", "USDJPY=X": "US-Dollar / Japanischer Yen", "GBPUSD=X": "Britisches Pfund / US-Dollar", "AUDUSD=X": "Australischer Dollar / US-Dollar", "USDCAD=X": "US-Dollar / Kanadischer Dollar", "USDCHF=X": "US-Dollar / Schweizer Franken", "NZDUSD=X": "Neuseeland-Dollar / US-Dollar", "EURGBP=X": "Euro / Britisches Pfund", "EURJPY=X": "Euro / Japanischer Yen", "EURCHF=X": "Euro / Schweizer Franken", "GBPJPY=X": "Britisches Pfund / Japanischer Yen", "AUDJPY=X": "Australischer Dollar / Japanischer Yen", "CHFJPY=X": "Schweizer Franken / Japanischer Yen", "EURNZD=X": "Euro / Neuseeland-Dollar", "USDNOK=X": "US-Dollar / Norwegische Krone", "USDDKK=X": "US-Dollar / Dänische Krone", "USDSEK=X": "US-Dollar / Schwedische Krone", "USDTRY=X": "US-Dollar / Türkische Lira", "USDMXN=X": "US-Dollar / Mexikanischer Peso", "USDCNH=X": "US-Dollar / Chinesischer Yuan", "GBPAUD=X": "Britisches Pfund / Australischer Dollar", "EURAUD=X": "Euro / Australischer Dollar", "EURCAD=X": "Euro / Kanadischer Dollar", # Edelmetalle & Rohstoffe 
+    "XAUUSD": "Gold", "XAGUSD": "Silber", "XPTUSD": "Platin", "XPDUSD": "Palladium", "WTI": "Rohöl (West Texas)", "BRENT": "Brent-Öl", "NG=F": "Erdgas", "HG=F": "Kupfer", "SI=F": "Silber (Futures)", "GC=F": "Gold (Futures)", "CL=F": "Crude Oil (Futures)", "PL=F": "Platin (Futures)", "PA=F": "Palladium (Futures)", "ZC=F": "Mais (Futures)", "ZS=F": "Sojabohnen (Futures)", "ZR=F": "Weizen (Futures)", "KC=F": "Kaffee", "SB=F": "Zucker", "CT=F": "Baumwolle", 
+    # Indizes 
+    "^GSPC": "S&P 500", "^DJI": "Dow Jones", "^IXIC": "Nasdaq 100", "^GDAXI": "DAX 40", "^FCHI": "CAC 40", "^FTSE": "FTSE 100", "^N225": "Nikkei 225", "^HSI": "Hang Seng (Hong Kong)", "000001.SS": "Shanghai Composite", "^BVSP": "Bovespa", "^GSPTSE": "TSX Kanada", "^SSMI": "SMI Schweiz", "^AS51": "ASX 200 Australien", "^MXX": "IPC Mexiko", "^STOXX50E": "Euro Stoxx 50", "^IBEX": "IBEX 35 Spanien", "^NSEI": "Nifty 50 Indien", 
+    # Kryptowährungen 
+    "BTC-USD": "Bitcoin", "ETH-USD": "Ethereum", "BNB-USD": "Binance Coin", "SOL-USD": "Solana", "XRP-USD": "Ripple", "ADA-USD": "Cardano", "DOGE-USD": "Dogecoin", "DOT-USD": "Polkadot", "AVAX-USD": "Avalanche", "LTC-USD": "Litecoin", "TRX-USD": "Tron", "LINK-USD": "Chainlink", "ATOM-USD": "Cosmos", "MATIC-USD": "Polygon", "UNI-USD": "Uniswap", "EOS-USD": "EOS", "FTT-USD": "FTX Token", "ALGO-USD": "Algorand", "XTZ-USD": "Tezos", "NEO-USD": "NEO", "AAVE-USD": "Aave", "COMP-USD": "Compound", "MKR-USD": "Maker", "SUSHI-USD": "SushiSwap", "FIL-USD": "Filecoin", "ICP-USD": "Internet Computer", "LUNA-USD": "Terra", "CEL-USD": "Celsius", "RVN-USD": "Ravencoin", "KSM-USD": "Kusama", "ENJ-USD": "Enjin Coin", "CHZ-USD": "Chiliz"
 }
 
 # --- Assets aus prognose.txt ---
@@ -113,14 +29,17 @@ def detect_candlestick(df):
     last = df.iloc[-1]
     prev = df.iloc[-2]
 
-    pattern = "Neutral"
-    trend = None
-    confidence = 0
-
+    # Sicherstellen, dass einzelne Werte floats sind
     last_body = float(last['Body'])
     prev_body = float(prev['Body'])
     last_close = float(last['Close'])
     last_open = float(last['Open'])
+    last_range = float(last['Range'])
+    last_low = float(last['Low'])
+
+    pattern = "Neutral"
+    trend = None
+    confidence = 0
 
     # Bullish/Bearish Engulfing
     if prev_body < 0 and last_body > 0 and abs(last_body) > abs(prev_body):
@@ -132,12 +51,12 @@ def detect_candlestick(df):
         trend = 'down'
         confidence = min(abs(last_body)/last_open*50 + 30, 90)
     # Hammer / Hanging Man
-    elif last_body/last['Range'] < 0.3 and (last['Close'] - last['Low'])/last['Range'] > 0.6:
+    elif last_range != 0 and last_body/last_range < 0.3 and (last_close - last_low)/last_range > 0.6:
         pattern = "Hammer" if last_body>0 else "Hanging Man"
         trend = 'up' if last_body>0 else 'down'
-        confidence = min((last['Range']/last_open)*100, 70)
+        confidence = min((last_range/last_open)*100, 70)
     # Doji
-    elif abs(last_body)/last['Range'] < 0.1:
+    elif last_range != 0 and abs(last_body)/last_range < 0.1:
         pattern = "Doji"
         trend = None
         confidence = 0
