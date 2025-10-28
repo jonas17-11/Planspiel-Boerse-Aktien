@@ -1,71 +1,75 @@
 import os
 import io
 import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
 import requests
 from analyzer import analyze_and_predict_all
 
 WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")  # Discord Webhook
+TOP_N = 5  # Anzahl Top Assets pro Richtung
 
-def plot_asset(df, name, trend_up=True):
-    """Erstellt Diagramm mit Kursen und Prognose."""
+# --- Pattern-Erklärungen ---
+PATTERN_EXPLANATIONS = {
+    "Bullish Engulfing": "Starkes Kaufsignal, letzte Kerze überdeckt die vorherige Abwärtskerze.",
+    "Bearish Engulfing": "Starkes Verkaufssignal, letzte Kerze überdeckt die vorherige Aufwärtskerze.",
+    "Hammer": "Möglicher Trendwechsel nach unten, langer Schatten nach unten.",
+    "Inverted Hammer": "Möglicher Trendwechsel nach unten, langer Schatten nach oben.",
+    "Doji": "Unentschlossenheit am Markt, Trend unklar.",
+    "Morning Star": "Bullishes Umkehrmuster, Signal für Aufwärtsbewegung.",
+    "Evening Star": "Bärisches Umkehrmuster, Signal für Abwärtsbewegung.",
+    "Hanging Man": "Bärisches Signal nach Aufwärtstrend.",
+    "Shooting Star": "Bärisches Signal nach Aufwärtstrend."
+}
+
+# --- Diagramm erstellen ---
+def plot_asset(df, forecast_df, name, trend_up=True):
     plt.figure(figsize=(8, 4))
     plt.plot(df.index, df['Close'], label='Aktueller Kurs', color='blue')
-    
-    # Einfache lineare Prognose der letzten 5 Tage
-    forecast_days = min(5, len(df))
-    y = df['Close'].values[-forecast_days:]
-    x = np.arange(forecast_days)
-    if len(x) > 1:
-        coeffs = np.polyfit(x, y, 1)
-        forecast = np.polyval(coeffs, x)
-        plt.plot(df.index[-forecast_days:], forecast, linestyle='--',
-                 color='green' if trend_up else 'red', label='Prognose')
-    
-    plt.title(f"{name} - Prognose")
+    if forecast_df is not None:
+        plt.plot(forecast_df.index, forecast_df['Predicted'],
+                 label='Prognose', color='green' if trend_up else 'red', linestyle='--')
+    plt.title(f"{name} - Trend: {'Aufwärts' if trend_up else 'Abwärts'}")
     plt.xlabel("Datum")
     plt.ylabel("Preis")
     plt.legend()
     plt.tight_layout()
-    
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
     plt.close()
     buf.seek(0)
     return buf
 
+# --- Discord-Nachricht bauen ---
 def build_discord_message(top_up, top_down):
-    """Erstellt Discord Nachricht und Liste der Assets für Diagramme."""
     message = ""
-    assets_to_plot = []
-
+    # Aufwärts
     if top_up:
-        message += "**📈 Top steigende Assets:**\n"
-        for a in top_up[:5]:
-            message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n"
-            assets_to_plot.append(a)
+        message += "**📈 Top Aufwärts-Trends:**\n"
+        for a in top_up[:TOP_N]:
+            explanation = PATTERN_EXPLANATIONS.get(a['pattern'], "")
+            message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n  *{explanation}*\n"
         message += "\n"
-
+    # Abwärts
     if top_down:
-        message += "**📉 Top fallende Assets:**\n"
-        for a in top_down[:5]:
-            message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n"
-            assets_to_plot.append(a)
+        message += "**📉 Top Abwärts-Trends:**\n"
+        for a in top_down[:TOP_N]:
+            explanation = PATTERN_EXPLANATIONS.get(a['pattern'], "")
+            message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n  *{explanation}*\n"
+    return message
 
-    return message, assets_to_plot
-
+# --- Nachricht posten ---
 def post_to_discord():
     top_up, top_down = analyze_and_predict_all()
     if not top_up and not top_down:
-        print("Keine Analyseergebnisse.")
+        print("Keine aussagekräftigen Trends gefunden.")
         return
 
-    message, assets_to_plot = build_discord_message(top_up, top_down)
+    message = build_discord_message(top_up, top_down)
 
     files = []
-    for a in assets_to_plot:
-        buf = plot_asset(a['df'], a['name'], trend_up=(a['trend'] == 'up'))
+    for a in top_up[:TOP_N] + top_down[:TOP_N]:
+        # forecast_df kann None sein, daher prüfen
+        forecast_df = a.get('forecast_df', None)
+        buf = plot_asset(a['df'], forecast_df, a['name'], trend_up=(a['trend']=="up"))
         files.append(("file", (f"{a['ticker']}.png", buf, "image/png")))
 
     payload = {"content": message}
