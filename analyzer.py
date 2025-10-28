@@ -108,8 +108,7 @@ with open("prognose.txt", "r") as f:
 # --- Candlestick-Erkennung ---
 def detect_candlestick(df):
     if len(df) < 2:
-        return None, None, 0.0
-
+        return "Neutral", None, None
     df = df.copy()
     df['Body'] = df['Close'] - df['Open']
     df['Range'] = df['High'] - df['Low']
@@ -123,42 +122,34 @@ def detect_candlestick(df):
     last_open = float(last['Open'])
     last_high = float(last['High'])
     last_low = float(last['Low'])
+    last_range = float(last['Range']) if float(last['Range']) != 0 else 1e-8
 
-    pattern = None
+    pattern = "Neutral"
     trend = None
+    confidence = None
 
-    # --- Bullish / Bearish Engulfing ---
-    if prev_body < 0 < last_body and abs(last_body) > abs(prev_body):
+    # Bullish Engulfing
+    if prev_body < 0 and last_body > 0 and abs(last_body) > abs(prev_body):
         pattern = "Bullish Engulfing"
         trend = "up"
-    elif prev_body > 0 > last_body and abs(last_body) > abs(prev_body):
+    # Bearish Engulfing
+    elif prev_body > 0 and last_body < 0 and abs(last_body) > abs(prev_body):
         pattern = "Bearish Engulfing"
         trend = "down"
-    # --- Hammer / Hanging Man ---
-    elif last_body > 0 and (last_high - last_close) / last['Range'] > 0.6 and (last_open - last_low)/last['Range'] > 2*abs(last_body)/last['Range']:
+    # Hammer
+    elif last_body / last_range < 0.3 and (last_high - last_open) / last_range > 0.6 and (last_close - last_low) / last_range > 2 * abs(last_body) / last_range:
         pattern = "Hammer"
         trend = "up"
-    elif last_body < 0 and (last_high - last_open) / last['Range'] > 0.6 and (last_close - last_low)/last['Range'] > 2*abs(last_body)/last['Range']:
-        pattern = "Hanging Man"
+    # Inverted Hammer
+    elif last_body / last_range < 0.3 and (last_high - last_close) / last_range > 0.6 and (last_open - last_low) / last_range > 2 * abs(last_body) / last_range:
+        pattern = "Inverted Hammer"
         trend = "down"
-    # --- Doji ---
-    elif abs(last_body) / last['Range'] < 0.1:
-        pattern = "Doji"
-        trend = None  # Neutral
-    # --- Shooting Star ---
-    elif last_body < 0 and (last_high - last_open)/last['Range'] > 0.6:
-        pattern = "Shooting Star"
-        trend = "down"
-
-    # Wenn keine Pattern erkannt, einfache Trendbestimmung
-    if not pattern:
+    else:
         trend = "up" if last_close > last_open else "down"
-        pattern = "Trend"
 
-    # Realistischere Confidence: basiert auf Körpergröße im Verhältnis zur Range
-    confidence = round(min(abs(last_body)/last['Range']*100*0.7, 99.9),2)
-    if trend is None:
-        confidence = 0.0  # Neutral
+    if trend is not None:
+        confidence = min(abs(last_body) / last_open * 100 * 2, 100)
+        confidence = round(confidence, 2)
 
     return pattern, trend, confidence
 
@@ -179,7 +170,7 @@ def analyze_and_predict_all():
         if df is None or df.empty:
             continue
         pattern, trend, confidence = detect_candlestick(df)
-        if trend is None:  # Neutral ignorieren
+        if trend is None or pattern == "Neutral":
             continue
         results.append({
             "ticker": ticker,
@@ -187,10 +178,8 @@ def analyze_and_predict_all():
             "pattern": pattern,
             "trend": trend,
             "confidence": confidence,
-            "df": df  # Für Diagramme
+            "df": df
         })
-
     top_up = sorted([r for r in results if r['trend']=='up'], key=lambda x:x['confidence'], reverse=True)
     top_down = sorted([r for r in results if r['trend']=='down'], key=lambda x:x['confidence'], reverse=True)
-
     return top_up, top_down
