@@ -17,10 +17,10 @@ def plot_candlestick_subplot(ax, df, trend_up=True, pattern="", confidence=0, y_
 
     for idx, row in df_plot.iterrows():
         try:
-            open_price = float(row['Open'])
-            close_price = float(row['Close'])
-            high_price = float(row['High'])
-            low_price = float(row['Low'])
+            open_price = float(row['Open'].item() if hasattr(row['Open'], 'item') else row['Open'])
+            close_price = float(row['Close'].item() if hasattr(row['Close'], 'item') else row['Close'])
+            high_price = float(row['High'].item() if hasattr(row['High'], 'item') else row['High'])
+            low_price = float(row['Low'].item() if hasattr(row['Low'], 'item') else row['Low'])
         except (ValueError, TypeError):
             continue
 
@@ -46,7 +46,7 @@ def plot_candlestick_subplot(ax, df, trend_up=True, pattern="", confidence=0, y_
     ax.set_title(f"{pattern} ({confidence}%)", fontsize=10)
 
     if y_min is not None and y_max is not None:
-        ax.set_ylim(y_min, y_max)
+        ax.set_ylim(float(y_min), float(y_max))  # unbedingt float() verwenden
 
 def build_discord_message(top_up, top_down):
     message = ""
@@ -85,8 +85,8 @@ def post_to_discord():
 
     # Berechne gemeinsame Y-Achse für alle Subplots
     all_prices = pd.concat([a['df']['Close'] for a in all_assets])
-    y_min = all_prices.min() * 0.98
-    y_max = all_prices.max() * 1.02
+    y_min = all_prices.min()
+    y_max = all_prices.max()
 
     # Alle Assets in einem Bild untereinander
     num_assets = len(all_assets)
