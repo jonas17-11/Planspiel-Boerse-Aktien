@@ -13,12 +13,10 @@ WEBHOOK_URL = os.getenv("PROGNOSE_WEBHOOK")
 # --- Candlestick-Subplot-Funktion ---
 def plot_candlestick_subplot(ax, df, name, trend_up=True, confidence=50):
     df_plot = df.copy()
-    width = 0.02
-    # index für x-Achse
+    width = 0.3
     x_vals = np.arange(len(df_plot))
-    
+
     for i, row in zip(x_vals, df_plot.itertuples(index=False)):
-        # robustes Auslesen der Spalten über getattr
         open_price = float(getattr(row, 'Open', row[0]))
         high_price = float(getattr(row, 'High', row[1]))
         low_price = float(getattr(row, 'Low', row[2]))
@@ -28,29 +26,33 @@ def plot_candlestick_subplot(ax, df, name, trend_up=True, confidence=50):
         ax.add_patch(Rectangle((i - width/2, min(open_price, close_price)),
                                width, abs(open_price - close_price), color=color))
         ax.vlines(i, low_price, high_price, color=color, linewidth=1)
-    
-    ax.set_title(name)
-    ax.set_ylabel("Preis")
+
+    ax.set_title(name, fontsize=12, weight='bold')
+    ax.set_ylabel("Preis", fontsize=10)
     ax.set_xticks([])
 
-    # --- Dynamischer Prognosepfeil leicht nach rechts versetzt ---
+    # --- Prognosepfeil + Linie ---
     y_top = df_plot['High'].max()
-    y_range = df_plot['High'].max() - df_plot['Low'].min()
-    arrow_height = y_range * 0.1 * (confidence / 100)
+    y_bottom = df_plot['Low'].min()
+    y_range = y_top - y_bottom
+    if y_range == 0:
+        y_range = 1
+
+    slope = (confidence / 100) * (y_range * 0.3)  # je höher Confidence, desto steiler
+    direction = 1 if trend_up else -1
+    start_y = df_plot['Close'].iloc[-1]
+    end_y = start_y + direction * slope
 
     base_color = np.array(to_rgba('green' if trend_up else 'red'))
-    intensity = 0.4 + 0.6*(confidence/100)
-    arrow_color = tuple(base_color[:3]*intensity) + (1.0,)
+    intensity = 0.4 + 0.6 * (confidence / 100)
+    line_color = tuple(base_color[:3] * intensity) + (1.0,)
 
-    ax.annotate('',
-                xy=(len(df_plot)-1 + 0.5, y_top + arrow_height),
-                xytext=(len(df_plot)-1 + 0.5, y_top),
-                arrowprops=dict(facecolor=arrow_color, edgecolor=arrow_color, shrink=0.05, width=3, headwidth=8))
+    ax.plot([len(df_plot)-1, len(df_plot)], [start_y, end_y],
+            color=line_color, linewidth=2, linestyle='--', label=f"{'↑' if trend_up else '↓'} {confidence}%")
 
-    trend_text = "Aufwärts" if trend_up else "Abwärts"
-    ax.text(0.5, -0.15, f"Prognose: {trend_text} {confidence}%", ha='center', va='center', transform=ax.transAxes)
+    ax.legend(loc='upper left', fontsize=8)
 
-# --- Discord-Nachricht bauen ---
+# --- Discord-Nachricht ---
 def build_discord_message(top_up, top_down):
     message = ""
     if top_up:
@@ -63,7 +65,7 @@ def build_discord_message(top_up, top_down):
             message += f"- **{a['name']}**: {a['pattern']} ({a['confidence']}%)\n"
     return message
 
-# --- Alles analysieren und posten ---
+# --- Alles analysieren & senden ---
 def post_to_discord():
     top_up, top_down = analyze_and_predict_all()
     all_assets = top_up + top_down
@@ -72,29 +74,29 @@ def post_to_discord():
         return
 
     message = build_discord_message(top_up, top_down)
-
-    # --- Subplots für alle Top-Assets in einem Bild ---
     n = len(all_assets)
-    fig, axes = plt.subplots(n, 1, figsize=(10, 3*n), constrained_layout=True)
+    fig, axes = plt.subplots(n, 1, figsize=(12, 4*n), constrained_layout=True, dpi=300)
+
     if n == 1:
         axes = [axes]
 
     for ax, a in zip(axes, all_assets):
-        plot_candlestick_subplot(ax, a['df'], a['name'], trend_up=(a['trend']=="up"), confidence=a['confidence'])
+        plot_candlestick_subplot(ax, a['df'], a['name'],
+                                 trend_up=(a['trend'] == "up"), confidence=a['confidence'])
 
     buf = io.BytesIO()
-    plt.savefig(buf, format='png')
+    plt.savefig(buf, format='png', dpi=300)
     plt.close()
     buf.seek(0)
 
     payload = {"content": message}
     files = [("file", ("top_assets.png", buf, "image/png"))]
-
     response = requests.post(WEBHOOK_URL, data=payload, files=files)
-    if response.status_code in (200,204):
-        print("Erfolgreich in Discord gesendet ✅")
+
+    if response.status_code in (200, 204):
+        print("✅ Erfolgreich in Discord gesendet")
     else:
-        print(f"Fehler beim Senden: {response.status_code} {response.text}")
+        print(f"❌ Fehler beim Senden: {response.status_code} {response.text}")
 
 if __name__ == "__main__":
     post_to_discord()
