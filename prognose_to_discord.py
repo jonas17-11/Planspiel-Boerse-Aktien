@@ -16,11 +16,15 @@ def plot_candlestick_subplot(ax, df, name, trend_up=True, confidence=50):
     width = 0.3
     x_vals = np.arange(len(df_plot))
 
+    # --- Candlestick zeichnen ---
     for i, row in zip(x_vals, df_plot.itertuples(index=False)):
-        open_price = float(getattr(row, 'Open', row[0]))
-        high_price = float(getattr(row, 'High', row[1]))
-        low_price = float(getattr(row, 'Low', row[2]))
-        close_price = float(getattr(row, 'Close', row[3]))
+        try:
+            open_price = float(getattr(row, 'Open', row[0]))
+            high_price = float(getattr(row, 'High', row[1]))
+            low_price = float(getattr(row, 'Low', row[2]))
+            close_price = float(getattr(row, 'Close', row[3]))
+        except Exception:
+            continue
 
         color = 'green' if close_price >= open_price else 'red'
         ax.add_patch(Rectangle((i - width/2, min(open_price, close_price)),
@@ -32,24 +36,40 @@ def plot_candlestick_subplot(ax, df, name, trend_up=True, confidence=50):
     ax.set_xticks([])
 
     # --- Prognosepfeil + Linie ---
-    y_top = df_plot['High'].max()
-    y_bottom = df_plot['Low'].min()
-    y_range = y_top - y_bottom
-    if y_range == 0:
-        y_range = 1
+    try:
+        y_top = float(df_plot['High'].max())
+        y_bottom = float(df_plot['Low'].min())
+    except Exception:
+        return  # Wenn irgendwas kaputt ist, abbrechen statt crashen
 
-    slope = (confidence / 100) * (y_range * 0.3)  # je höher Confidence, desto steiler
+    y_range = y_top - y_bottom
+    if isinstance(y_range, pd.Series):
+        y_range = y_range.iloc[0]
+    try:
+        y_range = float(y_range)
+    except Exception:
+        y_range = 1.0
+
+    if y_range == 0 or np.isnan(y_range):
+        y_range = 1.0
+
+    slope = (confidence / 100) * (y_range * 0.3)  # Je höher Confidence, desto steiler
     direction = 1 if trend_up else -1
-    start_y = df_plot['Close'].iloc[-1]
+    start_y = float(df_plot['Close'].iloc[-1])
     end_y = start_y + direction * slope
 
     base_color = np.array(to_rgba('green' if trend_up else 'red'))
     intensity = 0.4 + 0.6 * (confidence / 100)
     line_color = tuple(base_color[:3] * intensity) + (1.0,)
 
-    ax.plot([len(df_plot)-1, len(df_plot)], [start_y, end_y],
-            color=line_color, linewidth=2, linestyle='--', label=f"{'↑' if trend_up else '↓'} {confidence}%")
-
+    ax.plot(
+        [len(df_plot)-1, len(df_plot)],
+        [start_y, end_y],
+        color=line_color,
+        linewidth=2,
+        linestyle='--',
+        label=f"{'↑' if trend_up else '↓'} {confidence}%"
+    )
     ax.legend(loc='upper left', fontsize=8)
 
 # --- Discord-Nachricht ---
@@ -73,16 +93,26 @@ def post_to_discord():
         print("Keine relevanten Muster gefunden.")
         return
 
+    # --- Entferne fehlerhafte Daten (leere DataFrames) ---
+    valid_assets = [a for a in all_assets if a.get('df') is not None and not a['df'].empty]
+    if not valid_assets:
+        print("Keine gültigen Daten gefunden.")
+        return
+
     message = build_discord_message(top_up, top_down)
-    n = len(all_assets)
+    n = len(valid_assets)
     fig, axes = plt.subplots(n, 1, figsize=(12, 4*n), constrained_layout=True, dpi=300)
 
     if n == 1:
         axes = [axes]
 
-    for ax, a in zip(axes, all_assets):
-        plot_candlestick_subplot(ax, a['df'], a['name'],
-                                 trend_up=(a['trend'] == "up"), confidence=a['confidence'])
+    for ax, a in zip(axes, valid_assets):
+        try:
+            plot_candlestick_subplot(ax, a['df'], a['name'],
+                                     trend_up=(a['trend'] == "up"), confidence=a['confidence'])
+        except Exception as e:
+            print(f"⚠️ Fehler bei Plot für {a['name']}: {e}")
+            continue
 
     buf = io.BytesIO()
     plt.savefig(buf, format='png', dpi=300)
