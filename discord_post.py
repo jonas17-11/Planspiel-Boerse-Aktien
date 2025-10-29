@@ -6,6 +6,7 @@ from discord_webhook import DiscordWebhook, DiscordEmbed
 import requests
 from datetime import datetime
 import pytz
+import yfinance as yf
 
 # === Umgebungsvariablen ===
 DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK")
@@ -57,8 +58,29 @@ def format_table(df, title):
 top_table = format_table(top5,"🏆 Top 5 Aktien")
 flop_table = format_table(flop5,"📉 Flop 5 Aktien")
 
-likely_to_rise = df[df["change_pct"]>0].nlargest(3,"change_pct")
-rise_section = "**Aktien mit steigendem Potenzial:**\n" + ", ".join([f"{r['ticker']} (+{r['change_pct']:.2f}%)" for _,r in likely_to_rise.iterrows()]) if not likely_to_rise.empty else "**Aktien mit steigendem Potenzial:** Keine gefunden."
+# === Aktien mit steigendem Potenzial (Trend-basiert) ===
+likely_to_rise_list = []
+
+for ticker_symbol in df['ticker']:
+    try:
+        ticker = yf.Ticker(ticker_symbol)
+        hist = ticker.history(period="4d")  # 4 Tage, damit wir 3 Veränderungen haben
+        hist = hist['Close'].dropna()
+        if len(hist) < 4:
+            continue
+        daily_changes = hist.pct_change().dropna() * 100
+        avg_change = daily_changes[-3:].mean()
+        if all(daily_changes[-3:] > 0) or avg_change > 0:
+            likely_to_rise_list.append((ticker_symbol, avg_change))
+    except Exception as e:
+        continue
+
+likely_to_rise_list.sort(key=lambda x: x[1], reverse=True)
+top_rise = likely_to_rise_list[:3]
+
+rise_section = "**Aktien mit steigendem Potenzial:**\n" + \
+    ", ".join([f"{t[0]} (+{t[1]:.2f}%)" for t in top_rise]) \
+    if top_rise else "**Aktien mit steigendem Potenzial:** Keine gefunden."
 
 # KI-Fazit
 def generate_gemini_fazit(top,flop):
