@@ -58,29 +58,38 @@ def format_table(df, title):
 top_table = format_table(top5,"🏆 Top 5 Aktien")
 flop_table = format_table(flop5,"📉 Flop 5 Aktien")
 
-# === Aktien mit steigendem Potenzial (Trend-basiert) ===
+# === Aktien mit steigendem Potenzial (robustes Momentum + Visualisierung) ===
 likely_to_rise_list = []
 
 for ticker_symbol in df['ticker']:
     try:
         ticker = yf.Ticker(ticker_symbol)
-        hist = ticker.history(period="4d")  # 4 Tage, damit wir 3 Veränderungen haben
+        hist = ticker.history(period="4d")  # 4 Tage für 3 tägige Veränderungen
         hist = hist['Close'].dropna()
         if len(hist) < 4:
             continue
         daily_changes = hist.pct_change().dropna() * 100
         avg_change = daily_changes[-3:].mean()
-        if all(daily_changes[-3:] > 0) or avg_change > 0:
-            likely_to_rise_list.append((ticker_symbol, avg_change))
-    except Exception as e:
+        max_loss = min(daily_changes[-3:])
+        # Robust: durchschnittlich >0 und max. Rücksetzer < 2%
+        if avg_change > 0 and max_loss > -2:
+            likely_to_rise_list.append((ticker_symbol, avg_change, daily_changes[-3:].tolist()))
+    except Exception:
         continue
 
+# Sortiere nach durchschnittlicher Steigerung, Top 3
 likely_to_rise_list.sort(key=lambda x: x[1], reverse=True)
 top_rise = likely_to_rise_list[:3]
 
-rise_section = "**Aktien mit steigendem Potenzial:**\n" + \
-    ", ".join([f"{t[0]} (+{t[1]:.2f}%)" for t in top_rise]) \
-    if top_rise else "**Aktien mit steigendem Potenzial:** Keine gefunden."
+# Discord-Anzeige mit Mini-Trendvisualisierung
+rise_section = "**Aktien mit steigendem Potenzial:**\n"
+if top_rise:
+    for t in top_rise:
+        ticker, avg, changes = t
+        trend_str = "".join("▲" if c>0 else "▼" for c in changes)
+        rise_section += f"{ticker} (+{avg:.2f}%) {trend_str}\n"
+else:
+    rise_section += "Keine gefunden."
 
 # KI-Fazit
 def generate_gemini_fazit(top,flop):
