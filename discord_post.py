@@ -58,54 +58,48 @@ def format_table(df, title):
 top_table = format_table(top5,"🏆 Top 5 Aktien")
 flop_table = format_table(flop5,"📉 Flop 5 Aktien")
 
-# === Aktien mit steigendem Potenzial (robustes Momentum + Visualisierung) ===
-likely_to_rise_list = []
+# === Erweiterte Analyse: Aktien mit steigendem Potenzial ===
+likely_to_rise = df[df["change_pct"] > 0].nlargest(5, "change_pct")
+detailed_info = []
 
-for ticker_symbol in df['ticker']:
+for _, row in likely_to_rise.iterrows():
     try:
+        ticker_symbol = row["ticker"]
         ticker = yf.Ticker(ticker_symbol)
-        hist = ticker.history(period="4d")  # 4 Tage für 3 tägige Veränderungen
-        hist = hist['Close'].dropna()
-        if len(hist) < 4:
-            continue
+
+        hist = ticker.history(period="4d")  # 4 Tage Kursdaten
+        hist = hist["Close"].dropna().sort_index()  # ✅ Sortierung fixiert
         daily_changes = hist.pct_change().dropna() * 100
-        avg_change = daily_changes[-3:].mean()
-        max_loss = min(daily_changes[-3:])
-        # Robust: durchschnittlich >0 und max. Rücksetzer < 2%
-        if avg_change > 0 and max_loss > -2:
-            likely_to_rise_list.append((ticker_symbol, avg_change, daily_changes[-3:].tolist()))
+
+        arrows = "".join(["▲" if x > 0 else "▼" for x in daily_changes[-3:]])
+        avg_trend = daily_changes[-3:].mean()
+
+        detailed_info.append(f"{ticker_symbol} ({arrows}, Ø{avg_trend:+.2f}%)")
     except Exception:
-        continue
+        detailed_info.append(f"{row['ticker']} (⚠️ keine Verlaufsdaten)")
 
-# Sortiere nach durchschnittlicher Steigerung, Top 3
-likely_to_rise_list.sort(key=lambda x: x[1], reverse=True)
-top_rise = likely_to_rise_list[:3]
-
-# Discord-Anzeige mit Mini-Trendvisualisierung
-rise_section = "**Aktien mit steigendem Potenzial:**\n"
-if top_rise:
-    for t in top_rise:
-        ticker, avg, changes = t
-        trend_str = "".join("▲" if c>0 else "▼" for c in changes)
-        rise_section += f"{ticker} (+{avg:.2f}%) {trend_str}\n"
-else:
-    rise_section += "Keine gefunden."
+rise_section = (
+    "**📈 Aktien mit steigendem Potenzial:**\n" +
+    (", ".join(detailed_info) if detailed_info else "Keine gefunden.")
+)
 
 # KI-Fazit
-def generate_gemini_fazit(top,flop):
+def generate_gemini_fazit(top, flop):
     prompt = f"Du bist Finanzanalyst. Top: {', '.join(top['ticker'].tolist())}. Flop: {', '.join(flop['ticker'].tolist())}. Kurzes Fazit in Deutsch (max 3 Sätze)."
     try:
-        r = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}",
-                          headers={"Content-Type":"application/json"},
-                          json={"contents":[{"role":"user","parts":[{"text":prompt}]}]},
-                          timeout=20)
+        r = requests.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}",
+            headers={"Content-Type": "application/json"},
+            json={"contents": [{"role": "user", "parts": [{"text": prompt}]}]},
+            timeout=20
+        )
         r.raise_for_status()
         res = r.json()
         return res["candidates"][0]["content"]["parts"][0]["text"].strip() if res.get("candidates") else "⚠️ Kein KI-Fazit"
     except Exception as e:
         return f"⚠️ KI-Fazit konnte nicht abgerufen werden: {str(e)}"
 
-ki_fazit = generate_gemini_fazit(top5,flop5)
+ki_fazit = generate_gemini_fazit(top5, flop5)
 
 # Prüfen, ob Daten unverändert
 no_change = os.path.exists("no_change.flag")
@@ -120,7 +114,7 @@ embed.add_embed_field(name="📉 Flop 5 Aktien", value=flop_table, inline=True)
 embed.add_embed_field(name="📈 Analyse", value=rise_section, inline=False)
 embed.add_embed_field(name="🤖 KI-Fazit", value=ki_fazit, inline=False)
 
-with open(chart_path,"rb") as f:
+with open(chart_path, "rb") as f:
     webhook.add_file(file=f.read(), filename="top_flop_chart.png")
 embed.set_image(url="attachment://top_flop_chart.png")
 
